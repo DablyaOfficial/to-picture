@@ -229,5 +229,6 @@
  "py.err.bot": "YouTube möchte bestätigt haben, dass Sie kein Bot sind. Später erneut versuchen.",
  "py.err.login": "Diese Website zeigt das Video nur angemeldeten Nutzern — noch nicht unterstützt.",
  "py.err.noVideo": "In diesem Beitrag gibt es kein Video.",
- "py.err.noFormat": "Die Website bietet für dieses Video kein ladbares Format an."
+ "py.err.noFormat": "Die Website bietet für dieses Video kein ladbares Format an.",
+ "py.retry403": "Die Website hat den Zugriff verweigert — neuer Versuch in ein paar Sekunden…"
 }

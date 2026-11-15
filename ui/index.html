@@ -56,7 +56,7 @@ button { font:inherit; color:inherit; background:none; border:0; padding:0; marg
 
 /* ---------- layout ---------- */
 .win { height:100vh; display:flex; flex-direction:column; }
-.content { flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; padding:14px 20px 0; overflow:hidden; }
+.content { flex:1; min-height:0; display:flex; flex-direction:column; gap:16px; padding:14px 20px 0; overflow-x:hidden; overflow-y:auto; }
 .sec { flex:none; }
 
 /* ---------- buttons ---------- */
@@ -291,7 +291,7 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
 
 /* ---------- log ---------- */
 .log { display:flex; flex-direction:column; min-height:0; margin-top:auto; }
-.log.open { flex:1 1 0; min-height:96px; margin-top:0; }
+.log.open { flex:1 1 0; min-height:180px; margin-top:0; }
 .log .sum { font-family:var(--mono); font-size:11px; color:var(--text3); }
 .logbox {
   flex:1; min-height:0; overflow:auto; background:var(--sunken); border:1px solid var(--line); border-radius:4px;
@@ -1268,7 +1268,7 @@ function showAppMenu(anchor) {
     if (x.dataset.theme) { S.settings.theme = x.dataset.theme; onSettingsChanged(); }
     else if (x.dataset.act === 'lang') { if (S.running) return; closeMenu(); showLangMenu(anchor); return; }
     else if (x.dataset.act === 'data') api.open_data_dir();
-    else if (x.dataset.act === 'about') { setLogOpen(true); appendLog(`To Picture ${v} · ${S.versions || ''}`, 'c'); }
+    else if (x.dataset.act === 'about') { setLogOpen(true, true); appendLog(`To Picture ${v} · ${S.versions || ''}`, 'c'); }
     closeMenu(); anchor.focus();
   };
   items.forEach((x, i) => { x.addEventListener('mousemove', () => setHl(i)); x.addEventListener('click', () => act(x)); });
@@ -1511,22 +1511,18 @@ function appendLog(line, level) {
   S.logLast = line;
   if (!line.startsWith('$ ')) $('logSum').textContent = line;
 }
-function setLogOpen(open) {
+function setLogOpen(open, reveal = false) {
   $('logHead').setAttribute('aria-expanded', open);
   $('logSec').classList.toggle('open', open);
   $('logBox').classList.toggle('hidden', !open);
   $('bCopyLog').classList.toggle('hidden', !open);
   $('logSum').classList.toggle('hidden', open);
   if (open) $('logBox').scrollTop = $('logBox').scrollHeight;
+  // если открыли вручную, а места мало — прокручиваем окно к журналу (кнопки внизу не двигаются)
+  if (open && reveal) requestAnimationFrame(() => $('logSec').scrollIntoView({ block: 'end' }));
 }
-
-// страница никогда не скроллится: если содержимое не влезает — первым сворачивается журнал
-function fitHeight() {
-  const c = $('content');
-  if (c.scrollHeight > c.clientHeight + 1 && $('logSec').classList.contains('open')) setLogOpen(false);
-}
-new ResizeObserver(() => requestAnimationFrame(fitHeight)).observe($('content'));
-new MutationObserver(() => requestAnimationFrame(fitHeight)).observe($('content'), { subtree: true, attributes: true, attributeFilter: ['class'] });
+// Если содержимое не влезает (много строк прогресса, ошибка, маленькое окно), область между ссылками
+// и кнопками прокручивается — раньше в этом случае журнал захлопывался и его нельзя было открыть.
 
 // ---------------------------------------------------------------- buttons / hint
 function updateButtons() {
@@ -1569,8 +1565,8 @@ function wire() {
   });
 
   $('setHead').addEventListener('click', () => setSettingsOpen(!S.settings.settings_open));
-  $('logHead').addEventListener('click', () => setLogOpen($('logHead').getAttribute('aria-expanded') !== 'true'));
-  for (const [head, fn] of [['setHead', setSettingsOpen], ['logHead', setLogOpen]]) {
+  $('logHead').addEventListener('click', () => setLogOpen($('logHead').getAttribute('aria-expanded') !== 'true', true));
+  for (const [head, fn] of [['setHead', setSettingsOpen], ['logHead', (v) => setLogOpen(v, true)]]) {
     $(head).addEventListener('keydown', (e) => {
       if (e.key === 'ArrowLeft') { e.preventDefault(); fn(false); }
       if (e.key === 'ArrowRight') { e.preventDefault(); fn(true); }
@@ -1632,7 +1628,13 @@ function wire() {
   darkMQ.addEventListener('change', applyTheme);
 }
 
+let booted = false;
 async function boot() {
+  // pywebview может прислать pywebviewready повторно — без этой защиты обработчики навешивались дважды,
+  // и каждый клик по «Журналу» сразу открывал и закрывал его
+  window.__bootCalls = (window.__bootCalls || 0) + 1;
+  if (booted) return;
+  booted = true;
   api = window.pywebview.api;
   const init = await api.init();
   api.app_info().then(x => S.appInfo = x).catch(() => {});

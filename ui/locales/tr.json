@@ -225,5 +225,6 @@
  "py.err.bot": "YouTube robot olmadığınızı doğrulamanızı istedi. Daha sonra tekrar deneyin.",
  "py.err.login": "Bu site videoyu yalnızca oturum açmış kullanıcılara gösteriyor — henüz desteklenmiyor.",
  "py.err.noVideo": "Bu gönderide video yok.",
- "py.err.noFormat": "Site bu video için indirilebilir bir biçim sunmadı."
+ "py.err.noFormat": "Site bu video için indirilebilir bir biçim sunmadı.",
+ "py.retry403": "Site erişimi reddetti — birkaç saniye içinde yeniden deneniyor…"
 }

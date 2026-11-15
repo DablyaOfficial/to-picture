@@ -233,5 +233,6 @@
  "py.err.bot": "O YouTube pediu para confirmar que você não é um robô. Tente mais tarde.",
  "py.err.login": "Este site só mostra o vídeo para quem está logado — ainda não é suportado.",
  "py.err.noVideo": "Esta publicação não tem vídeo.",
- "py.err.noFormat": "O site não ofereceu um formato baixável para este vídeo."
+ "py.err.noFormat": "O site não ofereceu um formato baixável para este vídeo.",
+ "py.retry403": "O site recusou o acesso — tentando de novo em alguns segundos…"
 }

@@ -43,6 +43,7 @@ STATE = DATA_DIR / "state.json"
 OLD_CONFIG = DATA_DIR / "_none_" if PORTABLE else APPDATA / "YtdlCubase" / "settings.json"
 NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)
 UTF8_ENV = dict(os.environ, PYTHONIOENCODING="utf-8", PYTHONUTF8="1")
+INFO_CACHE_TTL = 10 * 60  # данные превью годятся для скачивания 10 минут (ссылки на потоки потом протухают)
 UPDATE_EVERY = 20 * 3600  # раз в сутки (с запасом)
 # ошибки, которые обычно лечатся обновлением yt-dlp
 OUTDATED_RE = re.compile(r"http error 403|nsig|signature|not a bot|unable to extract|"
@@ -637,17 +638,33 @@ class Job(threading.Thread):
         return code
 
     # ---- main loop
+    def _reset_tmp(self):
+        if self.tmp:
+            shutil.rmtree(self.tmp, ignore_errors=True)
+            self.tmp = None
+
     def attempt(self, url):
         try:
             return self.process(url)
         except DownloadError as e:
+            if re.search(r"http error 403", e.raw, re.I):
+                # TikTok и другие иногда отказывают при частых запросах — ждём и пробуем ещё раз с нуля
+                self.log(self.t("py.retry403"))
+                self._reset_tmp()
+                self.api._info_cache.pop(url, None)
+                for _ in range(8):
+                    if self.cancelled.is_set():
+                        raise Cancelled()
+                    time.sleep(0.5)
+                try:
+                    return self.process(url)
+                except DownloadError as e2:
+                    e = e2
             # частая причина падений — устаревший yt-dlp: обновляем и пробуем ещё раз
             if not (self.api._updater.enabled and OUTDATED_RE.search(e.raw)):
-                raise
+                raise e
             self.log(self.t("py.outdated"))
-            if self.tmp:
-                shutil.rmtree(self.tmp, ignore_errors=True)
-                self.tmp = None
+            self._reset_tmp()
             if not self.api._updater.check(force=True):
                 raise
             return self.process(url)
@@ -804,6 +821,12 @@ class Job(threading.Thread):
         чтобы не ходить на сайт дважды."""
         self.emit_progress(force=True, stage="download", step="video", pct=None, note=self.t("py.fetching"))
         path = self.tmp / "info.json"
+        # данные уже получены для превью — используем их: меньше запросов к сайту (TikTok за частые даёт 403)
+        cached = self.api._info_cache.get(url)
+        if cached and time.time() - cached[0] < INFO_CACHE_TTL:
+            path.write_bytes(cached[1])
+            self.info_path = path
+            return json.loads(cached[1].decode("utf-8", errors="replace"))
         args = ["yt-dlp", "-J", "--no-playlist", "--no-warnings", "--", url]
         self.log("$ " + " ".join(args), "c")
         with open(path, "wb") as out:
@@ -994,6 +1017,7 @@ class Api:
         self._lock = threading.Lock()
         self._updater = Updater(self)
         self._gpu = None
+        self._info_cache = {}  # url -> (время, JSON от yt-dlp -J) из превью
         self._lang = resolve_lang(load_settings().get("lang", "auto"))
         self._gpu_ready = threading.Event()
 
@@ -1049,6 +1073,8 @@ class Api:
 
     def preview(self, url):
         r = run_quiet(["yt-dlp", "-J", "--no-playlist", "--no-warnings", "--", url], 60)
+        if r.returncode == 0:
+            self._info_cache[url] = (time.time(), r.stdout)
         if r.returncode != 0:
             lines = r.stderr.decode("utf-8", errors="replace").strip().splitlines()
             err = next((l for l in reversed(lines) if l.startswith("ERROR")), lines[-1] if lines else "")
@@ -1195,8 +1221,45 @@ def main():
     except Exception:
         pass
     icon = HERE / "icon.ico"
-    webview.start(private_mode=False, storage_path=str(DATA_DIR / "webview"),
+    storage = DATA_DIR / "webview"
+    drop_stale_ui_cache(storage)
+    webview.start(private_mode=False, storage_path=str(storage), http_port=free_port(),
                   icon=str(icon) if icon.exists() else None, debug="--debug" in sys.argv)
+
+
+def free_port():
+    """pywebview с private_mode=False всегда берёт порт 42001. Если он занят другим окном To Picture
+    (например, старой версией), новое окно молча показывало ЕГО интерфейс. Берём свободный порт."""
+    import socket
+    with socket.socket() as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+
+def drop_stale_ui_cache(storage):
+    """Если файлы интерфейса изменились (обновление программы) — чистим кэш WebView2, чтобы не подхватить
+    старые страницы. Настройки программы хранятся отдельно и не затрагиваются."""
+    import hashlib
+    h = hashlib.sha1()
+    for f in [HERE / "ui" / "index.html", *sorted((HERE / "ui" / "locales").glob("*.json"))]:
+        try:
+            h.update(f.read_bytes())
+        except OSError:
+            pass
+    stamp = h.hexdigest()
+    marker = storage / ".ui-stamp"
+    try:
+        if marker.read_text(encoding="utf-8") == stamp:
+            return
+    except OSError:
+        pass
+    for sub in ("Cache", "Code Cache", "GPUCache", "Service Worker"):
+        shutil.rmtree(storage / "EBWebView" / "Default" / sub, ignore_errors=True)
+    try:
+        storage.mkdir(parents=True, exist_ok=True)
+        marker.write_text(stamp, encoding="utf-8")
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":

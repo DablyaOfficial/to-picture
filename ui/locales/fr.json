@@ -234,5 +234,6 @@
  "py.err.bot": "YouTube demande de confirmer que vous n’êtes pas un robot. Réessayez plus tard.",
  "py.err.login": "Ce site ne montre la vidéo qu’aux utilisateurs connectés — pas encore pris en charge.",
  "py.err.noVideo": "Cette publication ne contient pas de vidéo.",
- "py.err.noFormat": "Le site ne propose pas de format téléchargeable pour cette vidéo."
+ "py.err.noFormat": "Le site ne propose pas de format téléchargeable pour cette vidéo.",
+ "py.retry403": "Le site a refusé l’accès — nouvel essai dans quelques secondes…"
 }

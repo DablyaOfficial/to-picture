@@ -233,5 +233,6 @@
  "py.err.bot": "YouTube pidió confirmar que no eres un robot. Inténtalo más tarde.",
  "py.err.login": "Este sitio solo muestra el vídeo a usuarios con sesión iniciada; aún no es compatible.",
  "py.err.noVideo": "Esta publicación no tiene vídeo.",
- "py.err.noFormat": "El sitio no ofreció un formato descargable para este vídeo."
+ "py.err.noFormat": "El sitio no ofreció un formato descargable para este vídeo.",
+ "py.retry403": "El sitio denegó el acceso: reintentando en unos segundos…"
 }
