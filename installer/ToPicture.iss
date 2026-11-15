@@ -40,7 +40,8 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 LZMANumBlockThreads=4
 WizardStyle=modern
-CloseApplications=yes
+; Restart Manager не умеет закрывать окно pywebview — программу закрывает PrepareToInstall (см. [Code])
+CloseApplications=no
 RestartApplications=no
 ShowLanguageDialog=auto
 
@@ -98,6 +99,27 @@ tr.WV2InstallFailed=Microsoft WebView2 yüklenemedi. Uygulama açılmayabilir �
 tr.WV2DownloadFailed=Microsoft WebView2 indirilemedi:
 tr.WV2CheckNet=İnternet bağlantısını kontrol edin veya WebView2 Runtime’ı elle yükleyin.
 
+en.AppRunning=To Picture is running. Close it and continue the installation?
+en.AppRunningAbort=Close To Picture and run the installer again.
+ru.AppRunning=Программа To Picture запущена. Закрыть её и продолжить установку?
+ru.AppRunningAbort=Закройте To Picture и запустите установку снова.
+zh.AppRunning=To Picture 正在运行。要关闭它并继续安装吗？
+zh.AppRunningAbort=请关闭 To Picture 后重新运行安装程序。
+ja.AppRunning=To Picture が実行中です。終了してインストールを続けますか？
+ja.AppRunningAbort=To Picture を終了してから、もう一度インストーラーを実行してください。
+ko.AppRunning=To Picture가 실행 중입니다. 종료하고 설치를 계속할까요?
+ko.AppRunningAbort=To Picture를 종료한 뒤 설치 프로그램을 다시 실행하세요.
+es.AppRunning=To Picture está abierto. ¿Cerrarlo y continuar con la instalación?
+es.AppRunningAbort=Cierra To Picture y vuelve a ejecutar el instalador.
+pt.AppRunning=O To Picture está aberto. Fechá-lo e continuar a instalação?
+pt.AppRunningAbort=Feche o To Picture e execute o instalador de novo.
+de.AppRunning=To Picture läuft gerade. Schließen und mit der Installation fortfahren?
+de.AppRunningAbort=Schließen Sie To Picture und starten Sie die Installation erneut.
+fr.AppRunning=To Picture est ouvert. Le fermer et poursuivre l’installation ?
+fr.AppRunningAbort=Fermez To Picture et relancez l’installation.
+tr.AppRunning=To Picture çalışıyor. Kapatıp kuruluma devam edilsin mi?
+tr.AppRunningAbort=To Picture’ı kapatıp kurulumu yeniden başlatın.
+
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
@@ -141,6 +163,59 @@ begin
   if (V = '') or (V = '0.0.0.0') then
     V := WV2Version(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\' + WV2Guid);
   Result := (V <> '') and (V <> '0.0.0.0');
+end;
+
+// To Picture из папки установки: окно pywebview не закрывается через Restart Manager, а процесс-загрузчик
+// без окна может остаться после зависания — тогда exe нельзя заменить («Отказано в доступе»).
+// Поэтому перед установкой и удалением спрашиваем и закрываем программу сами.
+function RunPS(Cmd: String): Integer;
+begin
+  Log('powershell: ' + Cmd);
+  if not Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+              '-NoProfile -ExecutionPolicy Bypass -Command "' + Cmd + '"', '', SW_HIDE, ewWaitUntilTerminated, Result) then
+    Result := 0;
+end;
+
+// Win32_Process видит путь и у 64-битных процессов (32-битный установщик запускает 32-битный PowerShell,
+// у которого Get-Process не отдаёт Path чужой разрядности)
+function AppProcs(Dir: String): String;
+begin
+  Result := '@(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''To Picture.exe'' -and $_.ExecutablePath -like ''' + Dir + '\*'' })';
+end;
+
+function CountRunning(Dir: String): Integer;
+begin
+  Result := RunPS('exit ' + AppProcs(Dir) + '.Count');
+end;
+
+procedure KillRunning(Dir: String);
+begin
+  RunPS(AppProcs(Dir) + ' | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }');
+  Sleep(700);
+end;
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  Dir: String;
+  N: Integer;
+begin
+  Result := '';
+  Dir := ExpandConstant('{app}');
+  N := CountRunning(Dir);
+  Log('To Picture processes running from ' + Dir + ': ' + IntToStr(N));
+  if N > 0 then
+  begin
+    if SuppressibleMsgBox(CustomMessage('AppRunning'), mbConfirmation, MB_OKCANCEL, IDOK) = IDOK then
+      KillRunning(Dir)
+    else
+      Result := CustomMessage('AppRunningAbort');
+  end;
+end;
+
+function InitializeUninstall(): Boolean;
+begin
+  KillRunning(ExpandConstant('{app}'));
+  Result := True;
 end;
 
 procedure InitializeWizard;
