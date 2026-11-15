@@ -470,6 +470,26 @@ def probe(path):
         return {"duration": None, "height": None, "fps": 0, "frames": None, "vcodec": None, "acodecs": []}
 
 
+def fetch_thumb(url, referer):
+    """Обложка как data: URI (до 3 МБ), с Referer страницы видео. None — если не вышло."""
+    import base64, urllib.request
+    try:
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                          "Chrome/124.0 Safari/537.36",
+            "Referer": referer})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip()
+            data = r.read(3 * 1024 * 1024 + 1)
+        if len(data) > 3 * 1024 * 1024 or not data:
+            return None
+        if not ctype.startswith("image/"):
+            ctype = "image/webp" if data[8:12] == b"WEBP" else "image/png" if data[:4] == b"\x89PNG" else "image/jpeg"
+        return f"data:{ctype};base64," + base64.b64encode(data).decode()
+    except Exception:
+        return None
+
+
 def num(v):
     try:
         return float(v)
@@ -1034,15 +1054,22 @@ class Api:
             err = next((l for l in reversed(lines) if l.startswith("ERROR")), lines[-1] if lines else "")
             return {"ok": False, "error": friendly_error(err, self._lang), "raw": err}
         info = json.loads(r.stdout.decode("utf-8", errors="replace"))
+        # публикация без видео и звука (например, пост с картинками) — говорим сразу, а не при скачивании
+        if not info.get("formats") and not info.get("url"):
+            return {"ok": False, "error": tr(self._lang, "py.err.noVideo"), "raw": "no formats"}
         vids = [f for f in info.get("formats") or [] if f.get("vcodec") not in (None, "none") and f.get("height")]
         best = max(vids, key=lambda f: (f["height"], f.get("fps") or 0, f.get("tbr") or 0), default=None)
         heights = sorted({f["height"] for f in vids})
         thumb = info.get("thumbnail")
-        if info.get("id") and "youtube" in (info.get("extractor") or "").lower():
+        is_yt = "youtube" in (info.get("extractor") or "").lower()
+        if info.get("id") and is_yt:
             thumb = f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
             for t in info.get("thumbnails") or []:
                 if "maxresdefault.jpg" in (t.get("url") or ""):
                     thumb = t["url"]
+        elif thumb:
+            # многие сайты не отдают обложку без «своего» Referer — загружаем её сами и передаём как data:
+            thumb = fetch_thumb(thumb, info.get("webpage_url") or url) or thumb
         return {
             "ok": True,
             "title": info.get("title") or info.get("id") or "",
@@ -1062,7 +1089,8 @@ class Api:
             "auto_subs": bool(info.get("automatic_captions")),
             "language": info.get("language"),
             "audio_only": is_audio_only(info),
-            "site": info.get("extractor_key") or info.get("webpage_url_domain") or "",
+            # домен понятнее внутренних имён yt-dlp («TwitchClips»): vk.com, clips.twitch.tv
+            "site": re.sub(r"^(www|m)\.", "", info.get("webpage_url_domain") or "") or info.get("extractor_key") or "",
             "youtube": "youtube" in (info.get("extractor") or "").lower(),
         }
 

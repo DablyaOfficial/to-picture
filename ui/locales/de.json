@@ -196,7 +196,7 @@
  "py.err.badUrl": "Link nicht erkannt.",
  "py.err.premiere": "Die Premiere hat noch nicht begonnen.",
  "py.err.network": "Die Website ist nicht erreichbar. Internetverbindung prüfen.",
- "py.err.http403": "Die Website hat den Zugriff verweigert (403). yt-dlp muss aktualisiert werden.",
+ "py.err.http403": "Die Website hat den Zugriff verweigert (403). Bitte später erneut versuchen.",
  "py.err.unknown": "Unbekannter Fehler.",
  "py.ytdlpExit": "yt-dlp wurde mit Code {code} beendet",
  "py.ffmpegFail": "ffmpeg konnte die Datei nicht verarbeiten",

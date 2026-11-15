@@ -200,7 +200,7 @@
  "py.err.badUrl": "Link não reconhecido.",
  "py.err.premiere": "A estreia ainda não começou.",
  "py.err.network": "Não foi possível acessar o site. Verifique a internet.",
- "py.err.http403": "O site recusou o acesso (403). É preciso atualizar o yt-dlp.",
+ "py.err.http403": "O site recusou o acesso (403). Tente de novo daqui a pouco.",
  "py.err.unknown": "Erro desconhecido.",
  "py.ytdlpExit": "o yt-dlp terminou com o código {code}",
  "py.ffmpegFail": "o ffmpeg não conseguiu processar o arquivo",

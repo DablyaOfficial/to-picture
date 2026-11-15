@@ -192,7 +192,7 @@
  "py.err.badUrl": "无法识别的链接。",
  "py.err.premiere": "首映尚未开始。",
  "py.err.network": "无法连接网站，请检查网络。",
- "py.err.http403": "网站拒绝访问（403），需要更新 yt-dlp。",
+ "py.err.http403": "网站拒绝访问（403），请稍后再试。",
  "py.err.unknown": "未知错误。",
  "py.ytdlpExit": "yt-dlp 退出，代码 {code}",
  "py.ffmpegFail": "ffmpeg 无法处理该文件",

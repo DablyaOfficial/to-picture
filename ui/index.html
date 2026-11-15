@@ -957,7 +957,10 @@ function renderPreview(d) {
     } else img.classList.add('on');
   } else msg.textContent = t('pv.noThumb');
   if (d.duration) { dur.textContent = fmtTime(d.duration); dur.classList.remove('hidden'); } else dur.classList.add('hidden');
-  const byline = [d.youtube === false ? d.site : '', d.channel, fmtViews(d.views), fmtDate(d.date)].filter(Boolean).join(' · ');
+  // для не-YouTube — домен сайта первым; канал не дублируем, если он совпадает с сайтом («instagram.com · Instagram»)
+  const site = d.youtube === false ? d.site : '';
+  const chan = d.channel && site && site.toLowerCase().startsWith(d.channel.toLowerCase()) ? '' : d.channel;
+  const byline = [site, chan, fmtViews(d.views), fmtDate(d.date)].filter(Boolean).join(' · ');
   const sv = d.audio_only ? null : selectVideo(d).f;
   const src = d.audio_only ? t('pv.audioOnly') : sv ? [qTag(sv.h, sv.fps), sv.vc + (sv.hdr ? ' HDR' : '')].filter(Boolean).join(' · ') : '';
   $('pvMeta').innerHTML = `
@@ -966,7 +969,7 @@ function renderPreview(d) {
     <div style="flex:1"></div>
     <div class="pv-grid">
       <span class="k">${esc(t('pv.video'))}</span>
-      <div class="v"><span class="b val">${esc(src || '—')}</span><span class="arrow">→</span><span class="shrink">${esc(outputLabel(d))}</span></div>
+      <div class="v">${src ? `<span class="b val">${esc(src)}</span><span class="arrow">→</span>` : ''}<span class="shrink">${esc(outputLabel(d))}</span></div>
       <span class="k" id="pvAudioK">${esc(t('pv.audio'))}</span><div class="v" id="pvAudio"></div>
       <span class="k">${esc(t('pv.subs'))}</span><div class="v" id="pvSubs"></div>
     </div>`;

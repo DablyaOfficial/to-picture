@@ -200,7 +200,7 @@
  "py.err.badUrl": "Enlace no reconocido.",
  "py.err.premiere": "El estreno aún no ha empezado.",
  "py.err.network": "No se puede conectar con el sitio. Comprueba internet.",
- "py.err.http403": "El sitio denegó el acceso (403). Hay que actualizar yt-dlp.",
+ "py.err.http403": "El sitio denegó el acceso (403). Inténtalo un poco más tarde.",
  "py.err.unknown": "Error desconocido.",
  "py.ytdlpExit": "yt-dlp terminó con el código {code}",
  "py.ffmpegFail": "ffmpeg no pudo procesar el archivo",

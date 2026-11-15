@@ -192,7 +192,7 @@
  "py.err.badUrl": "Bağlantı tanınmadı.",
  "py.err.premiere": "Prömiyer henüz başlamadı.",
  "py.err.network": "Siteye ulaşılamıyor. İnternet bağlantısını kontrol edin.",
- "py.err.http403": "Site erişimi reddetti (403). yt-dlp güncellenmeli.",
+ "py.err.http403": "Site erişimi reddetti (403). Biraz sonra tekrar deneyin.",
  "py.err.unknown": "Bilinmeyen hata.",
  "py.ytdlpExit": "yt-dlp {code} koduyla kapandı",
  "py.ffmpegFail": "ffmpeg dosyayı işleyemedi",

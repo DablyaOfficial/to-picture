@@ -196,7 +196,7 @@
  "py.err.badUrl": "Link not recognized.",
  "py.err.premiere": "The premiere hasn't started yet.",
  "py.err.network": "Can't reach the site. Check your internet connection.",
- "py.err.http403": "The site refused access (403). yt-dlp needs an update.",
+ "py.err.http403": "The site refused access (403). Try again a bit later.",
  "py.err.unknown": "Unknown error.",
  "py.ytdlpExit": "yt-dlp exited with code {code}",
  "py.ffmpegFail": "ffmpeg couldn't process the file",
