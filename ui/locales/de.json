@@ -22,13 +22,19 @@
  "pv.source": "Original",
  "pv.all": "Alle ({n})",
  "pv.noteOverride": "nur dieser Link · laut Einstellung: {names}",
- "pv.noteRule": { "one": "laut Einstellung · Video hat {n} Tonspur", "other": "laut Einstellung · Video hat {n} Tonspuren" },
+ "pv.noteRule": {
+  "one": "laut Einstellung · Video hat {n} Tonspur",
+  "other": "laut Einstellung · Video hat {n} Tonspuren"
+ },
  "pv.reset": "zurücksetzen",
  "pv.embedTip": "Wird in die Datei eingebettet: {list}",
  "pv.originalParen": " (Original)",
  "pv.subsAutoOnly": "nur automatische · werden nicht geladen",
  "pv.none": "keine",
- "pv.langs": { "one": "{n} Sprache", "other": "{n} Sprachen" },
+ "pv.langs": {
+  "one": "{n} Sprache",
+  "other": "{n} Sprachen"
+ },
  "pv.notDownloaded": "werden nicht geladen",
  "pv.inVideo": "im Video",
  "pv.inVideoSrt": "im Video und .srt",
@@ -75,7 +81,7 @@
  "codec.prores.h": "leichter Schnitt",
  "codec.prores.mh": "große Datei, leichter Schnitt",
  "codec.copy.l": "Ohne Neukodierung",
- "codec.copy.h": "wie auf YouTube",
+ "codec.copy.h": "wie auf der Website",
  "codec.copy.mh": "originales vp9/av1, läuft nicht überall",
  "res.best": "Beste",
  "preset.ultrafast": "schnell, große Datei",
@@ -127,7 +133,10 @@
  "unit.KB": "KB",
  "unit.perSec": "/s",
  "size.of": "{a} von {b} {u}",
- "views": { "one": "{v} Aufruf", "other": "{v} Aufrufe" },
+ "views": {
+  "one": "{v} Aufruf",
+  "other": "{v} Aufrufe"
+ },
  "prog.download": "Download",
  "prog.transcode": "Umwandlung",
  "prog.remux": "Neuverpackung",
@@ -145,13 +154,16 @@
  "prog.frame": "Bild {a}",
  "prog.merged": " · Video und Ton zusammengeführt",
  "prog.ffmpegStart": "ffmpeg startet…",
- "prog.remuxDone": "H.264 von YouTube, ohne Neukodierung",
+ "prog.remuxDone": "H.264 von der Website, ohne Neukodierung",
  "prog.remuxNote": "Video ist bereits H.264 — keine Neukodierung nötig",
  "prog.cancelled": "abgebrochen, temporäre Dateien gelöscht",
  "q.videoOf": "Video {i} von {n}",
  "q.next": "als Nächstes: {name}",
  "q.cancelled": "Abgebrochen",
- "q.saved": { "one": "{n} Datei gespeichert", "other": "{n} Dateien gespeichert" },
+ "q.saved": {
+  "one": "{n} Datei gespeichert",
+  "other": "{n} Dateien gespeichert"
+ },
  "q.done": "Video {n} von {n} · fertig",
  "q.withErrors": "Video {n} von {n} · mit Fehlern",
  "q.errors": "Fehler: {n}",
@@ -190,7 +202,7 @@
  "py.ffmpegFail": "ffmpeg konnte die Datei nicht verarbeiten",
  "py.gpuFail": "Grafikkarte fehlgeschlagen ({e}) — kodiere mit dem Prozessor",
  "py.gpuUse": "Kodiere auf der {vendor}-Grafikkarte ({enc})",
- "py.copyVideo": "YouTube liefert H.264 {q} — keine Neukodierung nötig",
+ "py.copyVideo": "Die Website liefert H.264 {q} — keine Neukodierung nötig",
  "py.videoPick": "Video: {q} {vc}{hdr}",
  "py.tracks": "Tonspuren in der Datei ({n} von {total}): {list}",
  "py.orig": " — Original",
@@ -210,5 +222,12 @@
  "py.updErr": "yt-dlp: Update-Fehler — {e}",
  "py.trackOriginal": "Original",
  "py.trackAuto": "Automatische Synchronisation",
- "py.notFound": "nicht gefunden"
+ "py.notFound": "nicht gefunden",
+ "links.placeholder": "Link einfügen — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
+ "pv.audioOnly": "nur Ton",
+ "py.audioOnly": "Hier gibt es kein Video — der Ton wird gespeichert",
+ "py.err.bot": "YouTube möchte bestätigt haben, dass Sie kein Bot sind. Später erneut versuchen.",
+ "py.err.login": "Diese Website zeigt das Video nur angemeldeten Nutzern — noch nicht unterstützt.",
+ "py.err.noVideo": "In diesem Beitrag gibt es kein Video.",
+ "py.err.noFormat": "Die Website bietet für dieses Video kein ladbares Format an."
 }

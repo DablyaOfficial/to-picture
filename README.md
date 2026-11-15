@@ -3,7 +3,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
-    <img src="docs/hero-light.png" width="830" alt="To Picture — YouTube videos as normal files, no codec hassle">
+    <img src="docs/hero-light.png" width="830" alt="To Picture — video from YouTube and 1000+ sites as a file that plays anywhere">
   </picture>
 </p>
 
@@ -28,6 +28,8 @@
   <sub>Downloading and transcoding, dark theme</sub>
 </p>
 
+**Works with** YouTube, VK, TikTok, Twitch, Instagram, Dailymotion, Rutube, Coub, Weverse, SoundCloud (audio) and [1000+ other sites supported by yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md).
+
 ## Install
 
 1. Download [`ToPicture-Setup.exe`](https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Setup.exe) and run it. No admin rights needed; a new version installs over the old one and keeps your settings.
@@ -41,7 +43,7 @@ yt-dlp and ffmpeg are included — nothing else to install. Windows 10 or 11, 64
 
 ## How to use
 
-1. Copy a video link and paste it into **Links** (Ctrl+V). You can add several, one per line.
+1. Copy a video link from any supported site and paste it into **Links** (Ctrl+V). You can add several, one per line.
 2. Check the preview: quality, what it will be converted to, which audio tracks and subtitles go into the file. If a video has several dubs, you can tick the ones you want right in the preview — for that link only.
 3. Click **Download** (Ctrl+Enter). **Show in folder** opens the finished file.
 
@@ -53,10 +55,13 @@ Everything else is in **Settings**: folder, codec, resolution, quality, encoder,
 H.264 if unsure — it opens everywhere. H.265 makes smaller files, ProRes 422 is for editing, “No re-encoding” keeps the file as YouTube serves it.
 
 **Why is it sometimes done in seconds?**
-If YouTube already serves H.264 at the chosen resolution (usually up to 1080p), the app only downloads and joins the tracks, with no re-encoding. YouTube serves 4K only as VP9/AV1, so 4K has to be re-encoded.
+If the site already serves H.264 at the chosen resolution (YouTube usually does up to 1080p), the app only downloads and joins the tracks, with no re-encoding. YouTube serves 4K only as VP9/AV1, so 4K has to be re-encoded.
 
 **Do I need a graphics card?**
 No. With one, encoding is faster and uses almost no memory; without it, the processor does the work.
+
+**Which sites work?**
+Everything [yt-dlp supports](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) — over a thousand sites. Checked: YouTube, VK, TikTok, Twitch, Instagram, Dailymotion, Rutube, Coub, Weverse; SoundCloud and other audio-only links are saved as `.m4a`. Sites that show the video only to signed-in users (Vimeo, Reddit, some X and Instagram posts) aren't supported yet — the app says so.
 
 **Are auto-generated subtitles downloaded?**
 No, only official ones. They're embedded as tracks and turned on in the player.

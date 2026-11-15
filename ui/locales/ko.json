@@ -22,13 +22,17 @@
  "pv.source": "원본",
  "pv.all": "전체 ({n})",
  "pv.noteOverride": "이 링크만 · 설정 기준: {names}",
- "pv.noteRule": { "other": "설정 기준 · 오디오 트랙 {n}개" },
+ "pv.noteRule": {
+  "other": "설정 기준 · 오디오 트랙 {n}개"
+ },
  "pv.reset": "초기화",
  "pv.embedTip": "파일에 포함: {list}",
  "pv.originalParen": " (원본)",
  "pv.subsAutoOnly": "자동 자막만 있음 · 다운로드 안 함",
  "pv.none": "없음",
- "pv.langs": { "other": "{n}개 언어" },
+ "pv.langs": {
+  "other": "{n}개 언어"
+ },
  "pv.notDownloaded": "다운로드 안 함",
  "pv.inVideo": "동영상에 포함",
  "pv.inVideoSrt": "동영상 + .srt",
@@ -75,7 +79,7 @@
  "codec.prores.h": "편집하기 쉬움",
  "codec.prores.mh": "큰 파일, 편집하기 쉬움",
  "codec.copy.l": "재인코딩 없음",
- "codec.copy.h": "YouTube 그대로",
+ "codec.copy.h": "사이트 그대로",
  "codec.copy.mh": "원본 vp9/av1, 일부 환경에서 안 열림",
  "res.best": "최고",
  "preset.ultrafast": "빠름, 큰 파일",
@@ -127,7 +131,9 @@
  "unit.KB": "KB",
  "unit.perSec": "/s",
  "size.of": "{a} / {b} {u}",
- "views": { "other": "조회수 {v}회" },
+ "views": {
+  "other": "조회수 {v}회"
+ },
  "prog.download": "다운로드",
  "prog.transcode": "변환",
  "prog.remux": "리먹싱",
@@ -145,13 +151,15 @@
  "prog.frame": "{a}프레임",
  "prog.merged": " · 동영상과 오디오 병합됨",
  "prog.ffmpegStart": "ffmpeg 시작 중…",
- "prog.remuxDone": "YouTube의 H.264, 재인코딩 없음",
+ "prog.remuxDone": "사이트의 H.264, 재인코딩 없음",
  "prog.remuxNote": "동영상이 이미 H.264입니다 — 재인코딩 불필요",
  "prog.cancelled": "취소됨, 임시 파일 삭제됨",
  "q.videoOf": "동영상 {i}/{n}",
  "q.next": "다음: {name}",
  "q.cancelled": "취소됨",
- "q.saved": { "other": "파일 {n}개 저장됨" },
+ "q.saved": {
+  "other": "파일 {n}개 저장됨"
+ },
  "q.done": "동영상 {n}/{n} · 완료",
  "q.withErrors": "동영상 {n}/{n} · 오류 있음",
  "q.errors": "오류: {n}",
@@ -190,7 +198,7 @@
  "py.ffmpegFail": "ffmpeg가 파일을 처리하지 못했습니다",
  "py.gpuFail": "그래픽 카드에서 실패했습니다({e}) — 프로세서로 인코딩합니다",
  "py.gpuUse": "{vendor} 그래픽 카드로 인코딩 중 ({enc})",
- "py.copyVideo": "YouTube가 H.264 {q}를 제공합니다 — 재인코딩 불필요",
+ "py.copyVideo": "사이트가 H.264 {q}를 제공합니다 — 재인코딩 불필요",
  "py.videoPick": "동영상: {q} {vc}{hdr}",
  "py.tracks": "파일 속 오디오 ({n}/{total}): {list}",
  "py.orig": " — 원본",
@@ -210,5 +218,12 @@
  "py.updErr": "yt-dlp: 업데이트 오류 — {e}",
  "py.trackOriginal": "원본",
  "py.trackAuto": "자동 더빙",
- "py.notFound": "찾을 수 없음"
+ "py.notFound": "찾을 수 없음",
+ "links.placeholder": "링크 붙여넣기 — YouTube, TikTok, Twitch, Dailymotion, Weverse…",
+ "pv.audioOnly": "오디오만",
+ "py.audioOnly": "동영상이 없습니다 — 오디오를 저장합니다",
+ "py.err.bot": "YouTube가 로봇이 아닌지 확인을 요청했습니다. 나중에 다시 시도하세요.",
+ "py.err.login": "이 사이트는 로그인한 사용자에게만 동영상을 보여 줍니다 — 아직 지원하지 않습니다.",
+ "py.err.noVideo": "이 게시물에는 동영상이 없습니다.",
+ "py.err.noFormat": "사이트가 이 동영상의 다운로드 가능한 형식을 제공하지 않았습니다."
 }

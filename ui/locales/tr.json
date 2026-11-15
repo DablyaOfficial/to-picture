@@ -22,13 +22,17 @@
  "pv.source": "orijinal",
  "pv.all": "Tümü ({n})",
  "pv.noteOverride": "yalnızca bu bağlantı · ayara göre: {names}",
- "pv.noteRule": { "other": "ayara göre · videoda {n} ses parçası var" },
+ "pv.noteRule": {
+  "other": "ayara göre · videoda {n} ses parçası var"
+ },
  "pv.reset": "sıfırla",
  "pv.embedTip": "Dosyaya eklenecek: {list}",
  "pv.originalParen": " (orijinal)",
  "pv.subsAutoOnly": "yalnızca otomatik · indirilmez",
  "pv.none": "yok",
- "pv.langs": { "other": "{n} dil" },
+ "pv.langs": {
+  "other": "{n} dil"
+ },
  "pv.notDownloaded": "indirilmez",
  "pv.inVideo": "videoda",
  "pv.inVideoSrt": "videoda ve .srt",
@@ -75,7 +79,7 @@
  "codec.prores.h": "kolay kurgu",
  "codec.prores.mh": "büyük dosya, kolay kurgu",
  "codec.copy.l": "Yeniden kodlamadan",
- "codec.copy.h": "YouTube’daki gibi",
+ "codec.copy.h": "sitedeki gibi",
  "codec.copy.mh": "orijinal vp9/av1, her yerde açılmaz",
  "res.best": "En iyi",
  "preset.ultrafast": "hızlı, büyük dosya",
@@ -127,7 +131,9 @@
  "unit.KB": "KB",
  "unit.perSec": "/sn",
  "size.of": "{a} / {b} {u}",
- "views": { "other": "{v} görüntüleme" },
+ "views": {
+  "other": "{v} görüntüleme"
+ },
  "prog.download": "İndirme",
  "prog.transcode": "Dönüştürme",
  "prog.remux": "Yeniden paketleme",
@@ -145,13 +151,15 @@
  "prog.frame": "kare {a}",
  "prog.merged": " · video ve ses birleştirildi",
  "prog.ffmpegStart": "ffmpeg başlatılıyor…",
- "prog.remuxDone": "YouTube’dan H.264, yeniden kodlama yok",
+ "prog.remuxDone": "Siteden H.264, yeniden kodlama yok",
  "prog.remuxNote": "video zaten H.264 — yeniden kodlamaya gerek yok",
  "prog.cancelled": "iptal edildi, geçici dosyalar silindi",
  "q.videoOf": "Video {i} / {n}",
  "q.next": "sıradaki: {name}",
  "q.cancelled": "İptal edildi",
- "q.saved": { "other": "{n} dosya kaydedildi" },
+ "q.saved": {
+  "other": "{n} dosya kaydedildi"
+ },
  "q.done": "Video {n} / {n} · bitti",
  "q.withErrors": "Video {n} / {n} · hatalarla",
  "q.errors": "hatalar: {n}",
@@ -190,7 +198,7 @@
  "py.ffmpegFail": "ffmpeg dosyayı işleyemedi",
  "py.gpuFail": "Ekran kartı başarısız oldu ({e}) — işlemciyle kodlanıyor",
  "py.gpuUse": "{vendor} ekran kartında kodlanıyor ({enc})",
- "py.copyVideo": "YouTube H.264 {q} sunuyor — yeniden kodlamaya gerek yok",
+ "py.copyVideo": "Site H.264 {q} sunuyor — yeniden kodlamaya gerek yok",
  "py.videoPick": "Video: {q} {vc}{hdr}",
  "py.tracks": "Dosyadaki ses parçaları ({n} / {total}): {list}",
  "py.orig": " — orijinal",
@@ -210,5 +218,12 @@
  "py.updErr": "yt-dlp: güncelleme hatası — {e}",
  "py.trackOriginal": "Orijinal",
  "py.trackAuto": "Otomatik dublaj",
- "py.notFound": "bulunamadı"
+ "py.notFound": "bulunamadı",
+ "links.placeholder": "Bağlantı yapıştırın — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
+ "pv.audioOnly": "yalnızca ses",
+ "py.audioOnly": "Burada video yok — ses kaydediliyor",
+ "py.err.bot": "YouTube robot olmadığınızı doğrulamanızı istedi. Daha sonra tekrar deneyin.",
+ "py.err.login": "Bu site videoyu yalnızca oturum açmış kullanıcılara gösteriyor — henüz desteklenmiyor.",
+ "py.err.noVideo": "Bu gönderide video yok.",
+ "py.err.noFormat": "Site bu video için indirilebilir bir biçim sunmadı."
 }

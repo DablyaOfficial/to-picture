@@ -338,7 +338,7 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
       </div>
       <div class="input" id="inputBox">
         <div class="gutter"><div class="gutter-in tab" id="gutter"></div></div>
-        <textarea id="urls" spellcheck="false" wrap="off" placeholder="https://www.youtube.com/watch?v=…"></textarea>
+        <textarea id="urls" spellcheck="false" wrap="off" data-i18n-ph="links.placeholder"></textarea>
         <div class="urllist hidden" id="urlList" data-i18n-title="links.editTip"></div>
       </div>
     </section>
@@ -481,6 +481,7 @@ function applyStatic() {
   document.documentElement.lang = LANG;
   document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = t(e.dataset.i18n));
   document.querySelectorAll('[data-i18n-title]').forEach(e => e.title = t(e.dataset.i18nTitle));
+  document.querySelectorAll('[data-i18n-ph]').forEach(e => e.placeholder = t(e.dataset.i18nPh));
 }
 // в языках, где названия языков пишутся со строчной (_lower в locales), — строчные внутри фразы
 const lc = (x) => L._lower ? String(x).toLocaleLowerCase(LANG) : String(x);
@@ -935,6 +936,7 @@ function selectVideo(d) {
 }
 function outputLabel(d) {
   const s = S.settings;
+  if (d.audio_only) return 'M4A';
   const { f, copy } = selectVideo(d);
   const q = f ? qTag(f.h, f.fps) : '';
   // YouTube уже отдаёт H.264 нужного разрешения — видео только перепаковывается
@@ -955,9 +957,9 @@ function renderPreview(d) {
     } else img.classList.add('on');
   } else msg.textContent = t('pv.noThumb');
   if (d.duration) { dur.textContent = fmtTime(d.duration); dur.classList.remove('hidden'); } else dur.classList.add('hidden');
-  const byline = [d.channel, fmtViews(d.views), fmtDate(d.date)].filter(Boolean).join(' · ');
-  const sv = selectVideo(d).f;
-  const src = sv ? [qTag(sv.h, sv.fps), sv.vc + (sv.hdr ? ' HDR' : '')].filter(Boolean).join(' · ') : '';
+  const byline = [d.youtube === false ? d.site : '', d.channel, fmtViews(d.views), fmtDate(d.date)].filter(Boolean).join(' · ');
+  const sv = d.audio_only ? null : selectVideo(d).f;
+  const src = d.audio_only ? t('pv.audioOnly') : sv ? [qTag(sv.h, sv.fps), sv.vc + (sv.hdr ? ' HDR' : '')].filter(Boolean).join(' · ') : '';
   $('pvMeta').innerHTML = `
     <div class="pv-title" title="${esc(d.title)}">${esc(d.title)}</div>
     <div class="pv-channel ell tab" title="${esc(byline)}">${esc(byline)}</div>
@@ -1281,6 +1283,7 @@ function showAppMenu(anchor) {
 // шаги загрузки идут в том порядке, в каком их делает yt-dlp: сначала субтитры, потом видео и звук
 function dlSteps(r) {
   const list = [];
+  if (r.audio_only) return [['audio', t('step.audio')]];
   if (r.has_subs) list.push(['subs', t('step.subs')]);
   list.push(['video', t('step.video')]);
   const an = r.audio_n || 1;
@@ -1420,7 +1423,7 @@ const handlers = {
   stage_done(ev) {
     S.rowsShown = true;
     if (ev.stage === 'download') {
-      S.dl = { label: t('prog.download'), state: 'done', step: 'merge', audio_n: S.dl.audio_n, has_subs: S.dl.has_subs, l: fmtSize(ev.size) + (ev.merged ? t('prog.merged') : ''), r: fmtTime(ev.elapsed) };
+      S.dl = { label: t('prog.download'), state: 'done', step: 'merge', audio_n: S.dl.audio_n, has_subs: S.dl.has_subs, audio_only: S.dl.audio_only, l: fmtSize(ev.size) + (ev.merged ? t('prog.merged') : ''), r: fmtTime(ev.elapsed) };
       if (S.settingsAtRun.codec !== 'copy') S.tc = { label: S.tc.copy ? t('prog.remux') : t('prog.transcode'), copy: S.tc.copy, state: 'active', pct: 0, l: t('prog.ffmpegStart'), r: '' };
     } else {
       const copy = S.tc.copy;
@@ -1433,7 +1436,7 @@ const handlers = {
     if (ev.copy) { S.tc = { ...S.tc, label: t('prog.remux'), copy: true, l: t('prog.remuxNote') }; renderRows(); }
   },
   plan(ev) {
-    S.dl.has_subs = ev.subs; S.dl.audio_n = ev.audio_n; renderRows();
+    S.dl.has_subs = ev.subs; S.dl.audio_n = ev.audio_n; S.dl.audio_only = !!ev.audio_only; renderRows();
   },
   item_done(ev) {
     S.lineState[ev.index] = 'done';

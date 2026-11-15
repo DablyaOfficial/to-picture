@@ -23,7 +23,7 @@ from pathlib import Path
 import webview
 
 APP = "To Picture"
-APP_VERSION = "1.7.0"
+APP_VERSION = "1.8.0"
 FROZEN = getattr(sys, "frozen", False)
 # в собранном exe файлы интерфейса лежат во временной папке PyInstaller (sys._MEIPASS)
 HERE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -143,6 +143,14 @@ def base_lang(code):
 def iso3(code):
     b = base_lang(code)
     return ISO3.get(b, b) if b and b != "und" else "und"
+
+
+def is_audio_only(info):
+    """Ни одного видеопотока — например, SoundCloud или подкаст."""
+    fmts = info.get("formats") or []
+    if fmts:
+        return all(f.get("vcodec") == "none" for f in fmts)
+    return info.get("vcodec") == "none"
 
 
 def video_formats(info):
@@ -310,12 +318,19 @@ CODECS = {
 ERROR_HINTS = [
     (r"private video", "py.err.private"),
     (r"sign in to confirm your age|age.restricted", "py.err.age"),
-    (r"video (is )?unavailable|is not available|has been removed", "py.err.unavailable"),
+    (r"not a bot", "py.err.bot"),
     (r"members.only|join this channel", "py.err.members"),
+    (r"authentication is required|only works when logged.in|login required|requires? (a )?log.?in|"
+     r"logged.in|use --cookies|account credentials", "py.err.login"),
+    (r"http error 404|: not found\.|video (is )?unavailable|is not available|has been removed|does not exist",
+     "py.err.unavailable"),
+    (r"no video could be found|no video formats found|there is no video|no media found", "py.err.noVideo"),
+    (r"requested format is not available", "py.err.noFormat"),
     (r"is not a valid url|unsupported url", "py.err.badUrl"),
     (r"premieres in|live event will begin", "py.err.premiere"),
-    (r"unable to download webpage|getaddrinfo|timed out|connection", "py.err.network"),
     (r"http error 403", "py.err.http403"),
+    (r"getaddrinfo|timed out|connection (refused|reset|aborted)|network is unreachable|unable to download webpage",
+     "py.err.network"),
 ]
 
 
@@ -558,6 +573,7 @@ class Job(threading.Thread):
         self.overrides = overrides or {}
         self.lang = resolve_lang(opts.get("lang", "auto"))
         self.info_path = None
+        self.audio_mode = False
         self.proc = None
         self.cancelled = threading.Event()
         self.tmp = None
@@ -653,9 +669,12 @@ class Job(threading.Thread):
         out_dir = Path(o["out_dir"])
         out_dir.mkdir(parents=True, exist_ok=True)
         self.tmp = Path(tempfile.mkdtemp(prefix="topicture_"))
+        self.audio_mode = False
         meta = self.fetch_info(url)
 
         # видео: SDR вместо HDR; H.264 от YouTube — без перекодирования
+        if is_audio_only(meta):
+            return self.process_audio(meta)
         vpick, video_copy = select_video(video_formats(meta), o["max_height"], o["codec"])
         if video_copy:
             self.log(self.t("py.copyVideo", q=f"{vpick['h']}p{vpick['fps']}"))
@@ -731,6 +750,34 @@ class Job(threading.Thread):
                 self.log(self.t("py.srtSaved", name=target.name))
         return dest
 
+    def process_audio(self, meta):
+        o = self.opts
+        out_dir = Path(o["out_dir"])
+        self.log(self.t("py.audioOnly"))
+        self.audio_mode = True
+        self.emit("plan", subs=False, audio_n=1, audio_only=True)
+        src, _ = self.download([], [], fmt="ba[acodec^=mp4a]/ba[acodec=mp3]/ba/b")
+        a = probe(src).get("acodecs") or []
+        if a and a[0] in ("aac", "mp3"):
+            ext = "m4a" if a[0] == "aac" else "mp3"
+            dest = unique_path(out_dir / f"{src.stem}.{ext}")
+            self.emit("tc_mode", copy=True)
+            args = ["-c:a", "copy"]
+        else:
+            dest = unique_path(out_dir / f"{src.stem}.m4a")
+            args = ["-c:a", "aac", "-b:a", o["audio"]]
+        cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-nostats", "-i", str(src), "-vn", "-map", "0:a:0",
+               *args, "-movflags", "+faststart", str(dest)]
+        t0 = time.monotonic()
+        errors = []
+        code = self.run_proc(cmd, lambda line: (errors.append(line), self.log(line, "e")))
+        if code != 0 or not dest.exists():
+            dest.unlink(missing_ok=True)
+            raise RuntimeError(self.t("py.ffmpegFail") + (f": {errors[-1]}" if errors else "."))
+        self.emit("stage_done", stage="transcode", size=dest.stat().st_size, elapsed=time.monotonic() - t0)
+        self.srt_saved = []
+        return dest
+
     # ---- metadata
     def fetch_info(self, url):
         """yt-dlp -J во временный файл; загрузка потом идёт по нему (--load-info-json),
@@ -758,14 +805,18 @@ class Job(threading.Thread):
         return json.loads(path.read_text(encoding="utf-8", errors="replace"))
 
     # ---- download
-    def download(self, chosen, subs_keys, video_id=None):
+    def download(self, chosen, subs_keys, video_id=None, fmt=None):
         h = self.opts["max_height"]
         lim = "" if h == "best" else f"[height<={int(h)}]"
         v = video_id or f"bv*{lim}"
-        if chosen:
-            fmt = f"{v}+" + "+".join(t["id"] for t in chosen) + f"/b{lim}"
+        # запасные варианты: не все сайты сообщают размер кадра, у некоторых видео и звук — один файл
+        tail = f"bv*{lim}+ba/b{lim}/bv*+ba/b"
+        if fmt:
+            pass
+        elif chosen:
+            fmt = f"{v}+" + "+".join(t["id"] for t in chosen) + f"/{v}+ba/{tail}"
         else:
-            fmt = f"{v}+ba[acodec^=mp4a]/{v}+ba/b{lim}" if video_id else f"{v}+ba/b{lim}"
+            fmt = f"{v}+ba[acodec^=mp4a]/{v}+ba/{v}/{tail}" if video_id else tail
         args = ["yt-dlp", "--load-info-json", str(self.info_path), "-f", fmt,
                 "--merge-output-format", "mkv", "--newline", "--color", "never", "--progress-template",
                 "download:PROG %(progress.downloaded_bytes)s %(progress.total_bytes)s "
@@ -799,7 +850,7 @@ class Job(threading.Thread):
                     self.emit_progress(force=True, stage="download", step="subs", pct=None, note=self.t("py.subsNote"))
                 else:
                     st["media"] += 1
-                    st["step"] = "video" if st["media"] == 1 else "audio"
+                    st["step"] = "audio" if self.audio_mode or st["media"] > 1 else "video"
                     self.emit_progress(force=True, stage="download", step=st["step"], pct=0,
                                        audio_i=max(1, st["media"] - 1), audio_n=n_audio)
             elif line.startswith("[Merger]"):
@@ -807,8 +858,11 @@ class Job(threading.Thread):
 
         code = self.run_proc(args, on_line)
         files = [f for f in self.tmp.iterdir() if f.is_file() and not f.name.endswith((".part", ".ytdl"))
-                 and f.suffix.lower() in (".mkv", ".webm", ".mp4", ".mov", ".m4a")]
+                 and f.suffix.lower() in (".mkv", ".webm", ".mp4", ".mov", ".m4a", ".mp3", ".opus", ".ogg",
+                                          ".aac", ".flac", ".wav", ".flv", ".ts")]
         if code != 0 or not files:
+            if not st["errors"] and code == 0:  # yt-dlp отработал, но видео в публикации нет (например, картинки)
+                raise DownloadError(self.t("py.err.noVideo"), "no video")
             raise DownloadError(friendly_error(st["errors"][-1], self.lang) if st["errors"] else
                                 self.t("py.ytdlpExit", code=code), "\n".join(st["errors"]))
         src = max(files, key=lambda f: f.stat().st_size)
@@ -992,7 +1046,7 @@ class Api:
         return {
             "ok": True,
             "title": info.get("title") or info.get("id") or "",
-            "channel": info.get("uploader") or info.get("channel") or "",
+            "channel": info.get("uploader") or info.get("channel") or info.get("creator") or "",
             "duration": info.get("duration"),
             "views": info.get("view_count"),
             "date": info.get("upload_date"),
@@ -1007,6 +1061,9 @@ class Api:
             "subs": official_subs(info),
             "auto_subs": bool(info.get("automatic_captions")),
             "language": info.get("language"),
+            "audio_only": is_audio_only(info),
+            "site": info.get("extractor_key") or info.get("webpage_url_domain") or "",
+            "youtube": "youtube" in (info.get("extractor") or "").lower(),
         }
 
     def start(self, urls, opts, overrides=None):

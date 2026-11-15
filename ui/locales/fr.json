@@ -23,13 +23,21 @@
  "pv.source": "d’origine",
  "pv.all": "Toutes ({n})",
  "pv.noteOverride": "ce lien seulement · selon le réglage : {names}",
- "pv.noteRule": { "one": "selon le réglage · la vidéo a {n} piste", "many": "selon le réglage · la vidéo a {n} pistes", "other": "selon le réglage · la vidéo a {n} pistes" },
+ "pv.noteRule": {
+  "one": "selon le réglage · la vidéo a {n} piste",
+  "many": "selon le réglage · la vidéo a {n} pistes",
+  "other": "selon le réglage · la vidéo a {n} pistes"
+ },
  "pv.reset": "réinitialiser",
  "pv.embedTip": "Intégré au fichier : {list}",
  "pv.originalParen": " (original)",
  "pv.subsAutoOnly": "automatiques uniquement · non téléchargés",
  "pv.none": "aucun",
- "pv.langs": { "one": "{n} langue", "many": "{n} langues", "other": "{n} langues" },
+ "pv.langs": {
+  "one": "{n} langue",
+  "many": "{n} langues",
+  "other": "{n} langues"
+ },
  "pv.notDownloaded": "non téléchargés",
  "pv.inVideo": "dans la vidéo",
  "pv.inVideoSrt": "dans la vidéo et .srt",
@@ -76,7 +84,7 @@
  "codec.prores.h": "montage facile",
  "codec.prores.mh": "gros fichier, montage facile",
  "codec.copy.l": "Sans réencodage",
- "codec.copy.h": "comme sur YouTube",
+ "codec.copy.h": "comme sur le site",
  "codec.copy.mh": "vp9/av1 d’origine, ne s’ouvre pas partout",
  "res.best": "Meilleure",
  "preset.ultrafast": "rapide, gros fichier",
@@ -128,7 +136,11 @@
  "unit.KB": "Ko",
  "unit.perSec": "/s",
  "size.of": "{a} sur {b} {u}",
- "views": { "one": "{v} vue", "many": "{v} vues", "other": "{v} vues" },
+ "views": {
+  "one": "{v} vue",
+  "many": "{v} vues",
+  "other": "{v} vues"
+ },
  "prog.download": "Téléchargement",
  "prog.transcode": "Transcodage",
  "prog.remux": "Remuxage",
@@ -146,13 +158,17 @@
  "prog.frame": "image {a}",
  "prog.merged": " · vidéo et son fusionnés",
  "prog.ffmpegStart": "démarrage de ffmpeg…",
- "prog.remuxDone": "H.264 de YouTube, sans réencodage",
+ "prog.remuxDone": "H.264 du site, sans réencodage",
  "prog.remuxNote": "la vidéo est déjà en H.264 — pas de réencodage",
  "prog.cancelled": "annulé, fichiers temporaires supprimés",
  "q.videoOf": "Vidéo {i} sur {n}",
  "q.next": "ensuite : {name}",
  "q.cancelled": "Annulé",
- "q.saved": { "one": "{n} fichier enregistré", "many": "{n} fichiers enregistrés", "other": "{n} fichiers enregistrés" },
+ "q.saved": {
+  "one": "{n} fichier enregistré",
+  "many": "{n} fichiers enregistrés",
+  "other": "{n} fichiers enregistrés"
+ },
  "q.done": "Vidéo {n} sur {n} · terminé",
  "q.withErrors": "Vidéo {n} sur {n} · avec erreurs",
  "q.errors": "erreurs : {n}",
@@ -191,7 +207,7 @@
  "py.ffmpegFail": "ffmpeg n’a pas pu traiter le fichier",
  "py.gpuFail": "Échec de la carte graphique ({e}) — encodage par le processeur",
  "py.gpuUse": "Encodage sur la carte graphique {vendor} ({enc})",
- "py.copyVideo": "YouTube fournit du H.264 {q} — pas de réencodage",
+ "py.copyVideo": "Le site fournit du H.264 {q} — pas de réencodage",
  "py.videoPick": "Vidéo : {q} {vc}{hdr}",
  "py.tracks": "Pistes audio dans le fichier ({n} sur {total}) : {list}",
  "py.orig": " — original",
@@ -211,5 +227,12 @@
  "py.updErr": "yt-dlp : erreur de mise à jour — {e}",
  "py.trackOriginal": "Original",
  "py.trackAuto": "Doublage auto",
- "py.notFound": "introuvable"
+ "py.notFound": "introuvable",
+ "links.placeholder": "Collez un lien — YouTube, Dailymotion, TikTok, Twitch, Instagram…",
+ "pv.audioOnly": "audio seulement",
+ "py.audioOnly": "Pas de vidéo ici — enregistrement du son",
+ "py.err.bot": "YouTube demande de confirmer que vous n’êtes pas un robot. Réessayez plus tard.",
+ "py.err.login": "Ce site ne montre la vidéo qu’aux utilisateurs connectés — pas encore pris en charge.",
+ "py.err.noVideo": "Cette publication ne contient pas de vidéo.",
+ "py.err.noFormat": "Le site ne propose pas de format téléchargeable pour cette vidéo."
 }

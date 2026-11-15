@@ -23,13 +23,20 @@
  "pv.source": "original",
  "pv.all": "Todas ({n})",
  "pv.noteOverride": "solo este enlace · según ajustes: {names}",
- "pv.noteRule": { "one": "según ajustes · el vídeo tiene {n} pista", "other": "según ajustes · el vídeo tiene {n} pistas" },
+ "pv.noteRule": {
+  "one": "según ajustes · el vídeo tiene {n} pista",
+  "other": "según ajustes · el vídeo tiene {n} pistas"
+ },
  "pv.reset": "restablecer",
  "pv.embedTip": "Se incluirán en el archivo: {list}",
  "pv.originalParen": " (original)",
  "pv.subsAutoOnly": "solo automáticos · no se descargan",
  "pv.none": "no hay",
- "pv.langs": { "one": "{n} idioma", "many": "{n} idiomas", "other": "{n} idiomas" },
+ "pv.langs": {
+  "one": "{n} idioma",
+  "many": "{n} idiomas",
+  "other": "{n} idiomas"
+ },
  "pv.notDownloaded": "no se descargan",
  "pv.inVideo": "en el vídeo",
  "pv.inVideoSrt": "en el vídeo y .srt",
@@ -76,7 +83,7 @@
  "codec.prores.h": "edición fácil",
  "codec.prores.mh": "archivo grande, edición fácil",
  "codec.copy.l": "Sin recodificar",
- "codec.copy.h": "como en YouTube",
+ "codec.copy.h": "como en el sitio",
  "codec.copy.mh": "vp9/av1 original, no se abre en todas partes",
  "res.best": "La mejor",
  "preset.ultrafast": "rápido, archivo grande",
@@ -128,7 +135,11 @@
  "unit.KB": "KB",
  "unit.perSec": "/s",
  "size.of": "{a} de {b} {u}",
- "views": { "one": "{v} visualización", "many": "{v} visualizaciones", "other": "{v} visualizaciones" },
+ "views": {
+  "one": "{v} visualización",
+  "many": "{v} visualizaciones",
+  "other": "{v} visualizaciones"
+ },
  "prog.download": "Descarga",
  "prog.transcode": "Transcodificación",
  "prog.remux": "Reempaquetado",
@@ -146,13 +157,17 @@
  "prog.frame": "fotograma {a}",
  "prog.merged": " · vídeo y audio unidos",
  "prog.ffmpegStart": "iniciando ffmpeg…",
- "prog.remuxDone": "H.264 de YouTube, sin recodificar",
+ "prog.remuxDone": "H.264 del sitio, sin recodificar",
  "prog.remuxNote": "el vídeo ya es H.264 — no hace falta recodificar",
  "prog.cancelled": "cancelado, archivos temporales eliminados",
  "q.videoOf": "Vídeo {i} de {n}",
  "q.next": "siguiente: {name}",
  "q.cancelled": "Cancelado",
- "q.saved": { "one": "{n} archivo guardado", "many": "{n} archivos guardados", "other": "{n} archivos guardados" },
+ "q.saved": {
+  "one": "{n} archivo guardado",
+  "many": "{n} archivos guardados",
+  "other": "{n} archivos guardados"
+ },
  "q.done": "Vídeo {n} de {n} · listo",
  "q.withErrors": "Vídeo {n} de {n} · con errores",
  "q.errors": "errores: {n}",
@@ -191,7 +206,7 @@
  "py.ffmpegFail": "ffmpeg no pudo procesar el archivo",
  "py.gpuFail": "La tarjeta gráfica falló ({e}); se codifica con el procesador",
  "py.gpuUse": "Codificando en la tarjeta gráfica {vendor} ({enc})",
- "py.copyVideo": "YouTube ofrece H.264 {q}: no hace falta recodificar",
+ "py.copyVideo": "El sitio ofrece H.264 {q}: no hace falta recodificar",
  "py.videoPick": "Vídeo: {q} {vc}{hdr}",
  "py.tracks": "Pistas de audio en el archivo ({n} de {total}): {list}",
  "py.orig": " — original",
@@ -211,5 +226,12 @@
  "py.updErr": "yt-dlp: error al actualizar — {e}",
  "py.trackOriginal": "Original",
  "py.trackAuto": "Doblaje automático",
- "py.notFound": "no encontrado"
+ "py.notFound": "no encontrado",
+ "links.placeholder": "Pega un enlace — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
+ "pv.audioOnly": "solo audio",
+ "py.audioOnly": "Aquí no hay vídeo: se guarda el audio",
+ "py.err.bot": "YouTube pidió confirmar que no eres un robot. Inténtalo más tarde.",
+ "py.err.login": "Este sitio solo muestra el vídeo a usuarios con sesión iniciada; aún no es compatible.",
+ "py.err.noVideo": "Esta publicación no tiene vídeo.",
+ "py.err.noFormat": "El sitio no ofreció un formato descargable para este vídeo."
 }
