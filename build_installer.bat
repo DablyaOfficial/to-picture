@@ -1,0 +1,52 @@
+@echo off
+chcp 65001 >nul
+rem Собирает "To Picture.exe", установщик и портативную версию в installer\output
+rem Нужны: pip install pyinstaller pywebview  +  Inno Setup 6 или 7 (https://jrsoftware.org/isdl.php)
+cd /d "%~dp0"
+
+for /f "tokens=2 delims==" %%v in ('findstr /b "APP_VERSION" ToPicture.pyw') do set VER=%%~v
+set VER=%VER: =%
+set VER=%VER:"=%
+echo Версия: %VER%
+
+copy /y ToPicture.pyw "%TEMP%\ToPicture_main.py" >nul
+pyinstaller --noconfirm --onefile --windowed --name "To Picture" --icon "%~dp0icon.ico" ^
+  --add-data "%~dp0ui;ui" --add-data "%~dp0icon.ico;." ^
+  --distpath "%~dp0installer\payload" --workpath "%TEMP%\topicture_build" --specpath "%TEMP%\topicture_build" ^
+  --exclude-module tkinter --exclude-module PIL --exclude-module numpy ^
+  "%TEMP%\ToPicture_main.py" || goto :fail
+del "%TEMP%\ToPicture_main.py"
+
+set ISCC=
+for %%p in ("%LOCALAPPDATA%\Programs\Inno Setup 7\ISCC.exe" "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" ^
+            "%ProgramFiles%\Inno Setup 7\ISCC.exe" "%ProgramFiles(x86)%\Inno Setup 6\ISCC.exe" ^
+            "%ProgramFiles%\Inno Setup 6\ISCC.exe") do if exist %%p if not defined ISCC set ISCC=%%p
+if not defined ISCC (
+  echo Inno Setup не найден. Установите его: https://jrsoftware.org/isdl.php
+  goto :fail
+)
+%ISCC% /Q /DAppVersion=%VER% "installer\ToPicture.iss" || goto :fail
+
+rem ---- портативная версия: папка "To Picture" с exe, bin и portable.txt, упакованная в zip
+set PORT=%TEMP%\topicture_portable
+if exist "%PORT%" rmdir /s /q "%PORT%"
+mkdir "%PORT%\To Picture"
+copy /y "installer\payload\To Picture.exe" "%PORT%\To Picture\" >nul
+xcopy /e /i /q /y "installer\payload\bin" "%PORT%\To Picture\bin" >nul
+copy /y "installer\portable.txt" "%PORT%\To Picture\" >nul
+if exist "installer\output\ToPicture-Portable-%VER%.zip" del "installer\output\ToPicture-Portable-%VER%.zip"
+powershell -NoProfile -Command "Compress-Archive -Path '%PORT%\To Picture' -DestinationPath '%~dp0installer\output\ToPicture-Portable-%VER%.zip' -CompressionLevel Optimal" || goto :fail
+rmdir /s /q "%PORT%"
+
+echo.
+echo Готово:
+echo   %~dp0installer\output\ToPicture-Setup-%VER%.exe
+echo   %~dp0installer\output\ToPicture-Portable-%VER%.zip
+pause
+exit /b 0
+
+:fail
+echo.
+echo Сборка не удалась.
+pause
+exit /b 1

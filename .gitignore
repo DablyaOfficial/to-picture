@@ -1,0 +1,13 @@
+# сборка
+installer/payload/
+installer/output/
+build/
+dist/
+*.spec
+__pycache__/
+*.pyc
+
+# портативный режим и локальные данные
+data/
+portable.txt
+!installer/portable.txt
