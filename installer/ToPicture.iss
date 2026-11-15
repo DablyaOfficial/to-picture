@@ -1,14 +1,14 @@
-; Установщик To Picture (Inno Setup 6/7).
-; Собирается через ..\build_installer.bat — он сначала собирает exe, потом этот скрипт.
+﻿; To Picture installer (Inno Setup 6/7).
+; Built by ..\build_installer.bat: it builds the exe first, then compiles this script.
 ;
-; Ставит программу в профиль пользователя (%LOCALAPPDATA%\Programs\To Picture) без прав
-; администратора — поэтому yt-dlp.exe внутри может сам себя обновлять.
-; Вместе с программой кладёт свои yt-dlp.exe и ffmpeg/ffprobe (папка bin).
-; Если в системе нет WebView2 (движок окна), докачивает и ставит его.
+; Installs per user (%LOCALAPPDATA%\Programs\To Picture) without admin rights, so the bundled
+; yt-dlp.exe can update itself. Ships its own yt-dlp.exe and ffmpeg/ffprobe in the bin folder.
+; Downloads and installs Microsoft WebView2 (the window engine) if it is missing.
+; The wizard language follows the Windows UI language.
 
 #define AppName "To Picture"
 #ifndef AppVersion
-  #define AppVersion "1.2.0"
+  #define AppVersion "1.7.0"
 #endif
 #define AppExe "To Picture.exe"
 
@@ -17,6 +17,11 @@ AppId={{8C7A2E3B-5D41-4F2A-9B6E-3F1D2A7C9E01}
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
+AppPublisher=DablyaOfficial
+AppPublisherURL=https://github.com/DablyaOfficial/to-picture
+AppSupportURL=https://github.com/DablyaOfficial/to-picture/issues
+AppUpdatesURL=https://github.com/DablyaOfficial/to-picture/releases
+VersionInfoVersion={#AppVersion}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
@@ -26,7 +31,8 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=output
-OutputBaseFilename=ToPicture-Setup-{#AppVersion}
+; имя без версии — тогда ссылка .../releases/latest/download/ToPicture-Setup.exe всегда ведёт на последнюю версию
+OutputBaseFilename=ToPicture-Setup
 SetupIconFile=..\icon.ico
 UninstallDisplayIcon={app}\{#AppExe}
 UninstallDisplayName={#AppName}
@@ -36,23 +42,77 @@ LZMANumBlockThreads=4
 WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
+ShowLanguageDialog=auto
 
 [Languages]
+Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "ru"; MessagesFile: "compiler:Languages\Russian.isl"
+Name: "zh"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "ja"; MessagesFile: "compiler:Languages\Japanese.isl"
+Name: "ko"; MessagesFile: "compiler:Languages\Korean.isl"
+Name: "es"; MessagesFile: "compiler:Languages\Spanish.isl"
+Name: "pt"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
+Name: "de"; MessagesFile: "compiler:Languages\German.isl"
+Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
+Name: "tr"; MessagesFile: "compiler:Languages\Turkish.isl"
+
+[CustomMessages]
+en.WV2Downloading=Downloading Microsoft WebView2…
+en.WV2InstallFailed=Microsoft WebView2 could not be installed. The app may not start — install WebView2 Runtime from Microsoft and run it again.
+en.WV2DownloadFailed=Microsoft WebView2 could not be downloaded:
+en.WV2CheckNet=Check your internet connection or install WebView2 Runtime manually.
+ru.WV2Downloading=Скачивание компонента Microsoft WebView2…
+ru.WV2InstallFailed=Не удалось установить Microsoft WebView2. Программа может не запуститься — установите WebView2 Runtime с сайта Microsoft и запустите её снова.
+ru.WV2DownloadFailed=Не удалось скачать Microsoft WebView2:
+ru.WV2CheckNet=Проверьте интернет или установите WebView2 Runtime вручную.
+zh.WV2Downloading=正在下载 Microsoft WebView2…
+zh.WV2InstallFailed=无法安装 Microsoft WebView2，程序可能无法启动。请从 Microsoft 网站安装 WebView2 Runtime 后重新运行。
+zh.WV2DownloadFailed=无法下载 Microsoft WebView2：
+zh.WV2CheckNet=请检查网络，或手动安装 WebView2 Runtime。
+ja.WV2Downloading=Microsoft WebView2 をダウンロード中…
+ja.WV2InstallFailed=Microsoft WebView2 をインストールできませんでした。アプリが起動しない場合は、Microsoft のサイトから WebView2 Runtime をインストールしてからもう一度実行してください。
+ja.WV2DownloadFailed=Microsoft WebView2 をダウンロードできませんでした：
+ja.WV2CheckNet=インターネット接続を確認するか、WebView2 Runtime を手動でインストールしてください。
+ko.WV2Downloading=Microsoft WebView2 다운로드 중…
+ko.WV2InstallFailed=Microsoft WebView2를 설치하지 못했습니다. 프로그램이 실행되지 않을 수 있습니다. Microsoft 웹사이트에서 WebView2 Runtime을 설치한 뒤 다시 실행하세요.
+ko.WV2DownloadFailed=Microsoft WebView2를 다운로드하지 못했습니다:
+ko.WV2CheckNet=인터넷 연결을 확인하거나 WebView2 Runtime을 직접 설치하세요.
+es.WV2Downloading=Descargando Microsoft WebView2…
+es.WV2InstallFailed=No se pudo instalar Microsoft WebView2. Puede que la aplicación no se inicie: instala WebView2 Runtime desde el sitio de Microsoft y vuelve a ejecutarla.
+es.WV2DownloadFailed=No se pudo descargar Microsoft WebView2:
+es.WV2CheckNet=Comprueba la conexión a internet o instala WebView2 Runtime manualmente.
+pt.WV2Downloading=Baixando o Microsoft WebView2…
+pt.WV2InstallFailed=Não foi possível instalar o Microsoft WebView2. O aplicativo pode não abrir — instale o WebView2 Runtime pelo site da Microsoft e execute-o de novo.
+pt.WV2DownloadFailed=Não foi possível baixar o Microsoft WebView2:
+pt.WV2CheckNet=Verifique a internet ou instale o WebView2 Runtime manualmente.
+de.WV2Downloading=Microsoft WebView2 wird heruntergeladen…
+de.WV2InstallFailed=Microsoft WebView2 konnte nicht installiert werden. Die App startet eventuell nicht — installieren Sie WebView2 Runtime von Microsoft und starten Sie sie erneut.
+de.WV2DownloadFailed=Microsoft WebView2 konnte nicht heruntergeladen werden:
+de.WV2CheckNet=Prüfen Sie die Internetverbindung oder installieren Sie WebView2 Runtime manuell.
+fr.WV2Downloading=Téléchargement de Microsoft WebView2…
+fr.WV2InstallFailed=Impossible d’installer Microsoft WebView2. L’application risque de ne pas démarrer — installez WebView2 Runtime depuis le site de Microsoft puis relancez-la.
+fr.WV2DownloadFailed=Impossible de télécharger Microsoft WebView2 :
+fr.WV2CheckNet=Vérifiez la connexion Internet ou installez WebView2 Runtime manuellement.
+tr.WV2Downloading=Microsoft WebView2 indiriliyor…
+tr.WV2InstallFailed=Microsoft WebView2 yüklenemedi. Uygulama açılmayabilir — Microsoft sitesinden WebView2 Runtime yükleyip yeniden çalıştırın.
+tr.WV2DownloadFailed=Microsoft WebView2 indirilemedi:
+tr.WV2CheckNet=İnternet bağlantısını kontrol edin veya WebView2 Runtime’ı elle yükleyin.
 
 [Tasks]
-Name: "desktopicon"; Description: "Создать ярлык на рабочем столе"; GroupDescription: "Ярлыки:"
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
 
 [Files]
 Source: "payload\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
-Source: "payload\bin\*"; DestDir: "{app}\bin"; Flags: ignoreversion recursesubdirs
+Source: "payload\bin\*"; DestDir: "{app}\bin"; Excludes: "yt-dlp.exe"; Flags: ignoreversion recursesubdirs
+; yt-dlp обновляет себя сам — при переустановке не откатываем его на версию из установщика
+Source: "payload\bin\yt-dlp.exe"; DestDir: "{app}\bin"; Flags: onlyifdoesntexist
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\{#AppExe}"; Description: "Запустить {#AppName}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 ; yt-dlp обновляет себя сам, поэтому в bin могут появиться файлы, которых не было при установке
@@ -85,8 +145,7 @@ end;
 
 procedure InitializeWizard;
 begin
-  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing),
-    'Скачивание компонента Microsoft WebView2…', nil);
+  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), CustomMessage('WV2Downloading'), nil);
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -104,11 +163,10 @@ begin
         DownloadPage.Download;
         if not Exec(ExpandConstant('{tmp}\MicrosoftEdgeWebview2Setup.exe'), '/silent /install', '',
                     SW_HIDE, ewWaitUntilTerminated, Code) or not WebView2Installed then
-          MsgBox('Не удалось установить Microsoft WebView2. Программа может не запуститься — ' +
-                 'установите WebView2 Runtime с сайта Microsoft и запустите её снова.', mbError, MB_OK);
+          MsgBox(CustomMessage('WV2InstallFailed'), mbError, MB_OK);
       except
-        MsgBox('Не удалось скачать Microsoft WebView2: ' + GetExceptionMessage + #13#10 +
-               'Проверьте интернет или установите WebView2 Runtime вручную.', mbError, MB_OK);
+        MsgBox(CustomMessage('WV2DownloadFailed') + ' ' + GetExceptionMessage + #13#10 +
+               CustomMessage('WV2CheckNet'), mbError, MB_OK);
       end;
     finally
       DownloadPage.Hide;

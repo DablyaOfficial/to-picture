@@ -34,14 +34,14 @@ mkdir "%PORT%\To Picture"
 copy /y "installer\payload\To Picture.exe" "%PORT%\To Picture\" >nul
 xcopy /e /i /q /y "installer\payload\bin" "%PORT%\To Picture\bin" >nul
 copy /y "installer\portable.txt" "%PORT%\To Picture\" >nul
-if exist "installer\output\ToPicture-Portable-%VER%.zip" del "installer\output\ToPicture-Portable-%VER%.zip"
-powershell -NoProfile -Command "Compress-Archive -Path '%PORT%\To Picture' -DestinationPath '%~dp0installer\output\ToPicture-Portable-%VER%.zip' -CompressionLevel Optimal" || goto :fail
+if exist "installer\output\ToPicture-Portable.zip" del "installer\output\ToPicture-Portable.zip"
+powershell -NoProfile -Command "Compress-Archive -Path '%PORT%\To Picture' -DestinationPath '%~dp0installer\output\ToPicture-Portable.zip' -CompressionLevel Optimal" || goto :fail
 rmdir /s /q "%PORT%"
 
 echo.
 echo Готово:
-echo   %~dp0installer\output\ToPicture-Setup-%VER%.exe
-echo   %~dp0installer\output\ToPicture-Portable-%VER%.zip
+echo   %~dp0installer\output\ToPicture-Setup.exe
+echo   %~dp0installer\output\ToPicture-Portable.zip
 pause
 exit /b 0
 

@@ -23,7 +23,7 @@ from pathlib import Path
 import webview
 
 APP = "To Picture"
-APP_VERSION = "1.6.1"
+APP_VERSION = "1.7.0"
 FROZEN = getattr(sys, "frozen", False)
 # в собранном exe файлы интерфейса лежат во временной папке PyInstaller (sys._MEIPASS)
 HERE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -56,16 +56,73 @@ DEFAULTS = {
     "max_height": "best",
     "audio": "320k",
     "theme": "system",
-    # какие озвучки встроить в файл (каждая — отдельная дорожка, выбирается в плеере)
-    "audio_lang": "orig_ru",  # orig | orig_ru | orig_ru_en | all
+    "lang": "auto",           # язык интерфейса: auto (как в Windows) или код из ui/locales
+    # какие озвучки встроить в файл (каждая — отдельная дорожка, выбирается в плеере);
+    # «ui» — язык интерфейса
+    "audio_lang": "orig_ui",  # orig | orig_ui | orig_ui_en | all
     # официальные субтитры (автоматические не скачиваются никогда)
     "subs": "embed",          # off | embed | embed_srt
-    "subs_lang": "ru_en",     # ru_en | ru | en | audio | all
+    "subs_lang": "ui_en",     # ui_en | ui | en | audio | all
     "encoder": "gpu",         # gpu | cpu — для H.264/H.265; без подходящей видеокарты всегда cpu
     "settings_open": False,
-    "schema": 2,
+    "schema": 3,
 }
-AUDIO_RULES = ("orig", "orig_ru", "orig_ru_en", "all")
+AUDIO_RULES = ("orig", "orig_ui", "orig_ui_en", "all")
+SUBS_RULES = ("ui_en", "ui", "en", "audio", "all")
+
+# ---- переводы: ui/locales/<код>.json — общие для интерфейса и для этого файла
+LOCALES_DIR = HERE / "ui" / "locales"
+_LOCALES = {}
+
+
+def locale(code):
+    if code not in _LOCALES:
+        try:
+            _LOCALES[code] = json.loads((LOCALES_DIR / f"{code}.json").read_text(encoding="utf-8"))
+        except Exception:
+            _LOCALES[code] = {}
+    return _LOCALES[code]
+
+
+def available_langs():
+    out = []
+    for f in sorted(LOCALES_DIR.glob("*.json")):
+        out.append({"code": f.stem, "name": locale(f.stem).get("_name", f.stem)})
+    return out
+
+
+def system_lang():
+    """Язык интерфейса Windows, сведённый к одному из переведённых."""
+    try:
+        buf = ctypes.create_unicode_buffer(85)
+        ctypes.windll.kernel32.LCIDToLocaleName(ctypes.windll.kernel32.GetUserDefaultUILanguage(), buf, 85, 0)
+        name = buf.value  # например ru-RU, zh-CN, pt-BR
+    except Exception:
+        name = "en-US"
+    codes = [l["code"] for l in available_langs()]
+    base = name.split("-")[0].lower()
+    if name in codes:
+        return name
+    for c in codes:  # zh-TW -> zh-CN, pt-PT -> pt-BR
+        if c.split("-")[0].lower() == base:
+            return c
+    return "en"
+
+
+def resolve_lang(setting):
+    codes = [l["code"] for l in available_langs()]
+    return setting if setting in codes else system_lang()
+
+
+def tr(lang, key, **p):
+    s = locale(lang).get(key)
+    if s is None:
+        s = locale("en").get(key, key)
+    if isinstance(s, dict):
+        s = s.get("other", next(iter(s.values())))
+    for k, v in p.items():
+        s = s.replace("{" + k + "}", str(v))
+    return s
 SUBS_MODES = ("off", "embed", "embed_srt")
 
 # ISO 639-1 -> 639-2 для метаданных дорожек в mp4/mov (плееры показывают язык по ним)
@@ -152,7 +209,7 @@ def audio_tracks(info, prefer_aac=False):
     return tracks
 
 
-def pick_audio(tracks, rule):
+def pick_audio(tracks, rule, ui="en"):
     """Дорожки для встраивания. rule — правило из настроек или список языков,
     выбранный для конкретной ссылки. Оригинал всегда первый (он же включён по умолчанию)."""
     if len(tracks) <= 1:
@@ -165,7 +222,8 @@ def pick_audio(tracks, rule):
         out = [t for t in tracks if base_lang(t["lang"]) in want]
         out.sort(key=lambda t: (not t["original"], want.index(base_lang(t["lang"]))))
         return out or [orig]
-    extra = {"orig": [], "orig_ru": ["ru"], "orig_ru_en": ["ru", "en"]}.get(rule, ["ru"])
+    ui = base_lang(ui)
+    extra = {"orig": [], "orig_ui": [ui], "orig_ui_en": [ui, "en"]}.get(rule, [ui])
     out = [orig]
     for lang in extra:
         t = next((t for t in tracks if base_lang(t["lang"]) == lang), None)
@@ -178,7 +236,7 @@ def official_subs(info):
     return sorted(k for k in (info.get("subtitles") or {}) if k != "live_chat")
 
 
-def pick_subs(available, rule, audio_langs, orig_lang):
+def pick_subs(available, rule, audio_langs, orig_lang, ui="en"):
     """Коды официальных субтитров для встраивания — по одному на язык."""
     def one(lang):
         m = [k for k in available if base_lang(k) == lang]
@@ -188,7 +246,8 @@ def pick_subs(available, rule, audio_langs, orig_lang):
     if rule == "audio":
         langs = [base_lang(x) for x in audio_langs] or [base_lang(orig_lang)]
     else:
-        langs = {"ru_en": ["ru", "en"], "ru": ["ru"], "en": ["en"]}.get(rule, ["ru", "en"])
+        ui = base_lang(ui)
+        langs = {"ui_en": [ui, "en"], "ui": [ui], "en": ["en"]}.get(rule, [ui, "en"])
     out = []
     for lang in dict.fromkeys(l for l in langs if l):
         out += one(lang)
@@ -249,23 +308,23 @@ CODECS = {
 }
 
 ERROR_HINTS = [
-    (r"private video", "Это приватное видео. Нужен доступ от владельца канала."),
-    (r"sign in to confirm your age|age.restricted", "Видео с возрастным ограничением — нужен вход в аккаунт."),
-    (r"video (is )?unavailable|is not available|has been removed", "Видео недоступно или удалено."),
-    (r"members.only|join this channel", "Видео только для спонсоров канала."),
-    (r"is not a valid url|unsupported url", "Ссылка не распознана."),
-    (r"premieres in|live event will begin", "Премьера ещё не началась."),
-    (r"unable to download webpage|getaddrinfo|timed out|connection", "Нет связи с сайтом. Проверь интернет."),
-    (r"http error 403", "Сайт отказал в доступе (403). Обнови yt-dlp: yt-dlp -U"),
+    (r"private video", "py.err.private"),
+    (r"sign in to confirm your age|age.restricted", "py.err.age"),
+    (r"video (is )?unavailable|is not available|has been removed", "py.err.unavailable"),
+    (r"members.only|join this channel", "py.err.members"),
+    (r"is not a valid url|unsupported url", "py.err.badUrl"),
+    (r"premieres in|live event will begin", "py.err.premiere"),
+    (r"unable to download webpage|getaddrinfo|timed out|connection", "py.err.network"),
+    (r"http error 403", "py.err.http403"),
 ]
 
 
-def friendly_error(text):
+def friendly_error(text, lang="en"):
     low = text.lower()
-    for pat, msg in ERROR_HINTS:
+    for pat, key in ERROR_HINTS:
         if re.search(pat, low):
-            return msg
-    return re.sub(r"^ERROR:\s*(\[[^\]]+\]\s*)?([\w-]+:\s*)?", "", text).strip() or "Неизвестная ошибка."
+            return tr(lang, key)
+    return re.sub(r"^ERROR:\s*(\[[^\]]+\]\s*)?([\w-]+:\s*)?", "", text).strip() or tr(lang, "py.err.unknown")
 
 
 # ---------------------------------------------------------------- settings
@@ -284,9 +343,16 @@ def load_settings():
         data["codec"] = "h264"
     if data.get("schema", 1) < 2:
         # 1.4: озвучки и субтитры по умолчанию встраиваются в файл
-        data.update(audio_lang="orig_ru", subs="embed", schema=2)
+        data.update(audio_lang="orig_ui", subs="embed", schema=2)
+    if data.get("schema", 1) < 3:
+        # 1.7: «русская» -> «язык интерфейса» (для русского интерфейса поведение то же)
+        data["audio_lang"] = {"orig_ru": "orig_ui", "orig_ru_en": "orig_ui_en"}.get(data["audio_lang"], data["audio_lang"])
+        data["subs_lang"] = {"ru_en": "ui_en", "ru": "ui"}.get(data["subs_lang"], data["subs_lang"])
+        data["schema"] = 3
     if data["audio_lang"] not in AUDIO_RULES:
-        data["audio_lang"] = "orig_ru"
+        data["audio_lang"] = "orig_ui"
+    if data["subs_lang"] not in SUBS_RULES:
+        data["subs_lang"] = "ui_en"
     if data["subs"] == "file":
         data["subs"] = "embed_srt"
     if data["subs"] not in SUBS_MODES:
@@ -360,13 +426,13 @@ def tool_versions():
     try:
         parts.append("yt-dlp " + run_quiet(["yt-dlp", "--version"], 20).stdout.decode().strip())
     except Exception:
-        parts.append("yt-dlp не найден")
+        parts.append("yt-dlp —")
     try:
         first = run_quiet(["ffmpeg", "-version"], 20).stdout.decode(errors="replace").splitlines()[0]
         m = re.search(r"version\s+(\S+)", first)
         parts.append("ffmpeg " + (m.group(1)[:20] if m else "?"))
     except Exception:
-        parts.append("ffmpeg не найден")
+        parts.append("ffmpeg —")
     return " · ".join(parts)
 
 
@@ -448,7 +514,8 @@ class Updater:
                 return False
             self.idle.clear()
             try:
-                self.api.push({"kind": "log", "line": "yt-dlp: проверка обновлений…", "level": "n"})
+                L = self.api._lang
+                self.api.push({"kind": "log", "line": tr(L, "py.updCheck"), "level": "n"})
                 r = run_quiet([str(OWN_YTDLP), "-U"], 240)
                 out = (r.stdout + r.stderr).decode("utf-8", errors="replace")
                 state["ytdlp_checked"] = time.time()
@@ -457,17 +524,17 @@ class Updater:
                 failed = r.returncode != 0 and not updated
                 version = run_quiet([str(OWN_YTDLP), "--version"], 30).stdout.decode().strip()
                 if updated:
-                    msg = f"yt-dlp обновлён до {version}"
+                    msg = tr(L, "py.updDone", v=version)
                 elif failed:
                     last = [l for l in out.strip().splitlines() if l.strip()]
-                    msg = "yt-dlp: не удалось обновиться" + (f" — {last[-1]}" if last else "")
+                    msg = tr(L, "py.updFail", e=(f" — {last[-1]}" if last else ""))
                 else:
-                    msg = f"yt-dlp {version} — последняя версия"
+                    msg = tr(L, "py.updLatest", v=version)
                 self.api.push({"kind": "ytdlp", "version": version, "updated": updated,
                                "line": msg, "level": "e" if failed else "n"})
                 return updated
             except Exception as e:  # noqa: BLE001
-                self.api.push({"kind": "log", "line": f"yt-dlp: ошибка обновления — {e}", "level": "e"})
+                self.api.push({"kind": "log", "line": tr(self.api._lang, "py.updErr", e=e), "level": "e"})
                 return False
             finally:
                 self.idle.set()
@@ -489,6 +556,7 @@ class Job(threading.Thread):
         super().__init__(daemon=True)
         self.api, self.items, self.opts = api, items, opts
         self.overrides = overrides or {}
+        self.lang = resolve_lang(opts.get("lang", "auto"))
         self.info_path = None
         self.proc = None
         self.cancelled = threading.Event()
@@ -503,6 +571,9 @@ class Job(threading.Thread):
         if force or now - self._last_emit >= 0.4:
             self._last_emit = now
             self.emit("progress", **data)
+
+    def t(self, key, **p):
+        return tr(self.lang, key, **p)
 
     def log(self, line, level="n"):
         self.emit("log", line=line, level=level)
@@ -537,7 +608,7 @@ class Job(threading.Thread):
             # частая причина падений — устаревший yt-dlp: обновляем и пробуем ещё раз
             if not (self.api._updater.enabled and OUTDATED_RE.search(e.raw)):
                 raise
-            self.log("Похоже, yt-dlp устарел — обновляю и пробую ещё раз…")
+            self.log(self.t("py.outdated"))
             if self.tmp:
                 shutil.rmtree(self.tmp, ignore_errors=True)
                 self.tmp = None
@@ -550,7 +621,7 @@ class Job(threading.Thread):
         t0 = time.monotonic()
         saved, saved_bytes, failed = 0, 0, 0
         if not self.api._updater.idle.is_set():
-            self.log("Жду окончания обновления yt-dlp…")
+            self.log(self.t("py.waitUpdate"))
             self.api._updater.idle.wait(300)
         for i, url in enumerate(self.items):
             if self.cancelled.is_set():
@@ -567,7 +638,7 @@ class Job(threading.Thread):
                 break
             except Exception as e:  # noqa: BLE001
                 failed += 1
-                msg = str(e) or "Неизвестная ошибка."
+                msg = str(e) or self.t("py.err.unknown")
                 self.log(msg, "e")
                 self.emit("item_error", index=i, total=total, message=msg)
             finally:
@@ -587,29 +658,31 @@ class Job(threading.Thread):
         # видео: SDR вместо HDR; H.264 от YouTube — без перекодирования
         vpick, video_copy = select_video(video_formats(meta), o["max_height"], o["codec"])
         if video_copy:
-            self.log(f"YouTube отдаёт H.264 {vpick['h']}p{vpick['fps']} — перекодирование не нужно")
+            self.log(self.t("py.copyVideo", q=f"{vpick['h']}p{vpick['fps']}"))
         elif vpick and o["codec"] != "copy":
-            self.log(f"Видео: {vpick['h']}p{vpick['fps']} {vpick['vc']}" + (" (HDR)" if vpick["hdr"] else ""))
+            self.log(self.t("py.videoPick", q=f"{vpick['h']}p{vpick['fps']}", vc=vpick["vc"], hdr=" (HDR)" if vpick["hdr"] else ""))
 
         # озвучка: правило из настроек или выбор для конкретного видео
         tracks = audio_tracks(meta, prefer_aac=video_copy)
         rule = (self.overrides.get(url) or {}).get("audio") or o["audio_lang"]
-        chosen = pick_audio(tracks, rule) if len(tracks) > 1 else []
+        chosen = pick_audio(tracks, rule, self.lang) if len(tracks) > 1 else []
         if chosen:
-            self.log(f"Озвучки в файле ({len(chosen)} из {len(tracks)}): " + ", ".join(
-                t["lang"] + (" — оригинал" if t["original"] else "") for t in chosen))
+            self.log(self.t("py.tracks", n=len(chosen), total=len(tracks), list=", ".join(
+                t["lang"] + (self.t("py.orig") if t["original"] else "") for t in chosen)))
 
         # субтитры: только официальные, автоматические не берём
         subs_keys = []
         if o["subs"] != "off":
             avail = official_subs(meta)
-            subs_keys = pick_subs(avail, o["subs_lang"], [t["lang"] for t in chosen], meta.get("language"))
+            subs_keys = pick_subs(avail, o["subs_lang"], [t["lang"] for t in chosen], meta.get("language"), self.lang)
             if subs_keys:
-                self.log("Субтитры: " + ", ".join(subs_keys))
+                self.log(self.t("py.subs", list=", ".join(subs_keys)))
             elif avail:
-                self.log("Субтитров на нужном языке нет. Есть: " + ", ".join(avail))
+                self.log(self.t("py.subsMissing", list=", ".join(avail)))
             else:
-                self.log("Официальных субтитров у видео нет")
+                self.log(self.t("py.subsNone"))
+        # план загрузки — чтобы прогресс показывал только реальные шаги
+        self.emit("plan", subs=bool(subs_keys), audio_n=max(1, len(chosen)))
 
         src, sub_files = self.download(chosen, subs_keys, vpick["id"] if vpick else None)
         info = probe(src)
@@ -622,7 +695,7 @@ class Job(threading.Thread):
         elif len(chosen) > 1 or (chosen and not chosen[0]["original"]):
             a_tag = " " + "+".join(base_lang(t["lang"]) for t in chosen)
         if chosen:
-            audio_meta = [(t["lang"], "Оригинал" if t["original"] else "Автоперевод" if t["auto"] else "")
+            audio_meta = [(t["lang"], self.t("py.trackOriginal") if t["original"] else self.t("py.trackAuto") if t["auto"] else "")
                           for t in chosen]
         else:  # одна дорожка — всё равно подпишем язык, если YouTube его знает
             audio_meta = [(tracks[0]["lang"], "")] if tracks and tracks[0]["lang"] != "und" else []
@@ -648,21 +721,21 @@ class Job(threading.Thread):
             self.convert(src, dest, info, vcodec, acodec, extra, embed, audio_meta, video_copy=video_copy)
 
         if embed:
-            self.log("Встроены субтитры: " + ", ".join(l for l, _ in embed))
+            self.log(self.t("py.embedded", list=", ".join(l for l, _ in embed)))
         self.srt_saved = []
         if o["subs"] == "embed_srt":
             for lang, f in sub_files:
                 target = unique_path(dest.with_name(f"{dest.stem}.{lang}.srt"))
                 shutil.move(str(f), target)
                 self.srt_saved.append(str(target))
-                self.log(f"Субтитры сохранены: {target.name}")
+                self.log(self.t("py.srtSaved", name=target.name))
         return dest
 
     # ---- metadata
     def fetch_info(self, url):
         """yt-dlp -J во временный файл; загрузка потом идёт по нему (--load-info-json),
         чтобы не ходить на сайт дважды."""
-        self.emit_progress(force=True, stage="download", step="video", pct=None, note="получение данных…")
+        self.emit_progress(force=True, stage="download", step="video", pct=None, note=self.t("py.fetching"))
         path = self.tmp / "info.json"
         args = ["yt-dlp", "-J", "--no-playlist", "--no-warnings", "--", url]
         self.log("$ " + " ".join(args), "c")
@@ -679,7 +752,7 @@ class Job(threading.Thread):
             if l.strip():
                 self.log(l, "e" if l.startswith("ERROR") else "n")
         if code != 0:
-            raise DownloadError(friendly_error(errors[-1]) if errors else f"yt-dlp завершился с кодом {code}",
+            raise DownloadError(friendly_error(errors[-1], self.lang) if errors else self.t("py.ytdlpExit", code=code),
                                 "\n".join(errors))
         self.info_path = path
         return json.loads(path.read_text(encoding="utf-8", errors="replace"))
@@ -723,7 +796,7 @@ class Job(threading.Thread):
             elif "[download] Destination:" in line:
                 if re.search(r"\.(vtt|srt|ttml|srv\d|json3)$", line, re.I):
                     st["step"] = -1
-                    self.emit_progress(force=True, stage="download", step="subs", pct=None, note="субтитры…")
+                    self.emit_progress(force=True, stage="download", step="subs", pct=None, note=self.t("py.subsNote"))
                 else:
                     st["media"] += 1
                     st["step"] = "video" if st["media"] == 1 else "audio"
@@ -736,8 +809,8 @@ class Job(threading.Thread):
         files = [f for f in self.tmp.iterdir() if f.is_file() and not f.name.endswith((".part", ".ytdl"))
                  and f.suffix.lower() in (".mkv", ".webm", ".mp4", ".mov", ".m4a")]
         if code != 0 or not files:
-            raise DownloadError(friendly_error(st["errors"][-1]) if st["errors"] else
-                                f"yt-dlp завершился с кодом {code}", "\n".join(st["errors"]))
+            raise DownloadError(friendly_error(st["errors"][-1], self.lang) if st["errors"] else
+                                self.t("py.ytdlpExit", code=code), "\n".join(st["errors"]))
         src = max(files, key=lambda f: f.stat().st_size)
         subs = []
         for f in sorted(self.tmp.glob("*.srt")):
@@ -756,13 +829,13 @@ class Job(threading.Thread):
         codec = {"libx264": "h264", "libx265": "h265"}.get(vcodec)
         gpu = self.api._gpu_for_job() if codec and self.opts.get("encoder") == "gpu" else None
         if gpu:
-            self.log(f"Кодирую на видеокарте {gpu['vendor']} ({gpu[codec]})")
+            self.log(self.t("py.gpuUse", vendor=gpu["vendor"], enc=gpu[codec]))
             try:
                 return self._convert(src, dest, info, vcodec, acodec, extra, subs, audio_meta, gpu)
             except Cancelled:
                 raise
             except RuntimeError as e:
-                self.log(f"Видеокарта не справилась ({e}) — кодирую процессором", "e")
+                self.log(self.t("py.gpuFail", e=e), "e")
                 self.emit_progress(force=True, stage="transcode", pct=0, frame=0, frames=info["frames"], speed=None, eta=None)
         return self._convert(src, dest, info, vcodec, acodec, extra, subs, audio_meta, None)
 
@@ -835,7 +908,7 @@ class Job(threading.Thread):
         code = self.run_proc(args, on_line)
         if code != 0 or not dest.exists() or dest.stat().st_size == 0:
             dest.unlink(missing_ok=True)
-            raise RuntimeError("ffmpeg не смог обработать файл" + (f": {errors[-1]}" if errors else "."))
+            raise RuntimeError(self.t("py.ffmpegFail") + (f": {errors[-1]}" if errors else "."))
         self.emit("stage_done", stage="transcode", size=dest.stat().st_size, elapsed=time.monotonic() - t0)
 
 
@@ -847,6 +920,7 @@ class Api:
         self._lock = threading.Lock()
         self._updater = Updater(self)
         self._gpu = None
+        self._lang = resolve_lang(load_settings().get("lang", "auto"))
         self._gpu_ready = threading.Event()
 
     # pywebview отдаёт публичные атрибуты в JS, поэтому окно держим в "приватном" поле
@@ -863,7 +937,10 @@ class Api:
 
     def init(self):
         missing = [t for t in ("yt-dlp", "ffmpeg", "ffprobe") if not shutil.which(t)]
-        return {"settings": load_settings(), "missing": missing}
+        settings = load_settings()
+        self._lang = resolve_lang(settings.get("lang", "auto"))
+        return {"settings": settings, "missing": missing, "lang": self._lang, "system_lang": system_lang(),
+                "strings": locale(self._lang), "fallback": locale("en"), "langs": available_langs()}
 
     def _detect_gpu(self):
         try:
@@ -893,6 +970,7 @@ class Api:
         clean = dict(DEFAULTS)
         clean.update({k: v for k, v in (data or {}).items() if k in DEFAULTS})
         save_settings(clean)
+        self._lang = resolve_lang(clean.get("lang", "auto"))
         return True
 
     def preview(self, url):
@@ -900,7 +978,7 @@ class Api:
         if r.returncode != 0:
             lines = r.stderr.decode("utf-8", errors="replace").strip().splitlines()
             err = next((l for l in reversed(lines) if l.startswith("ERROR")), lines[-1] if lines else "")
-            return {"ok": False, "error": friendly_error(err), "raw": err}
+            return {"ok": False, "error": friendly_error(err, self._lang), "raw": err}
         info = json.loads(r.stdout.decode("utf-8", errors="replace"))
         vids = [f for f in info.get("formats") or [] if f.get("vcodec") not in (None, "none") and f.get("height")]
         best = max(vids, key=lambda f: (f["height"], f.get("fps") or 0, f.get("tbr") or 0), default=None)
@@ -913,7 +991,7 @@ class Api:
                     thumb = t["url"]
         return {
             "ok": True,
-            "title": info.get("title") or "Без названия",
+            "title": info.get("title") or info.get("id") or "",
             "channel": info.get("uploader") or info.get("channel") or "",
             "duration": info.get("duration"),
             "views": info.get("view_count"),

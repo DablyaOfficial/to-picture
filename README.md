@@ -1,82 +1,88 @@
+<p align="right"><b>English</b> · <a href="README.ru.md">Русский</a></p>
+
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/hero-dark.png">
-    <img src="docs/hero-light.png" width="830" alt="To Picture — видео с YouTube в обычный файл, без возни с кодеками">
+    <img src="docs/hero-light.png" width="830" alt="To Picture — YouTube videos as normal files, no codec hassle">
   </picture>
 </p>
 
 <p align="center">
-  <a href="https://github.com/DablyaOfficial/to-picture/releases/latest"><img alt="Скачать для Windows — установщик" src="https://img.shields.io/badge/Скачать_для_Windows-установщик-B4501E?style=flat-square"></a>
-  <a href="https://github.com/DablyaOfficial/to-picture/releases/latest"><img alt="Portable — zip" src="https://img.shields.io/badge/Portable-zip-5C5C58?style=flat-square"></a>
-  &nbsp;<a href="https://github.com/DablyaOfficial/to-picture/releases">Все версии</a>
+  <a href="https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Setup.exe"><img alt="Download for Windows — installer" src="https://img.shields.io/badge/Download_for_Windows-installer-B4501E?style=flat-square"></a>
+  <a href="https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Portable.zip"><img alt="Portable — zip" src="https://img.shields.io/badge/Portable-zip-5C5C58?style=flat-square"></a>
+  &nbsp;<a href="https://github.com/DablyaOfficial/to-picture/releases">All versions</a>
 </p>
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/features-dark.png">
-  <img src="docs/features-light.png" width="830" alt="1080p за секунды · На видеокарте · Озвучки и субтитры">
+  <img src="docs/features-light.png" width="830" alt="1080p in seconds · On your GPU · Dubs and subtitles">
 </picture>
 
 <p align="center">
-  <img src="docs/screenshot-light.png" width="806" alt="Окно To Picture: ссылки, превью видео с озвучкой и субтитрами, параметры"><br>
-  <sub>Превью и параметры</sub>
+  <img src="docs/screenshot-light.png" width="806" alt="To Picture window: links, video preview with audio and subtitles, settings"><br>
+  <sub>Preview and settings</sub>
 </p>
 
 <p align="center">
-  <img src="docs/screenshot-dark.png" width="806" alt="To Picture во время работы: скачивание завершено, идёт перекодирование на видеокарте"><br>
-  <sub>Скачивание и перекодирование, тёмная тема</sub>
+  <img src="docs/screenshot-dark.png" width="806" alt="To Picture at work: download finished, GPU transcoding in progress"><br>
+  <sub>Downloading and transcoding, dark theme</sub>
 </p>
 
-## Установка
+## Install
 
-1. Скачайте `ToPicture-Setup-<версия>.exe` со страницы [последней версии](https://github.com/DablyaOfficial/to-picture/releases/latest) и запустите. Права администратора не нужны; новая версия ставится поверх старой, настройки сохраняются.
-2. Если Windows покажет «Система Windows защитила ваш компьютер», нажмите **Подробнее** → **Выполнить в любом случае**. Установщик не подписан платным сертификатом — поэтому и предупреждение.
+1. Download [`ToPicture-Setup.exe`](https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Setup.exe) and run it. No admin rights needed; a new version installs over the old one and keeps your settings.
+2. If Windows says “Windows protected your PC”, click **More info** → **Run anyway**. The installer isn't signed with a paid certificate, hence the warning.
 
-**Portable:** распакуйте `ToPicture-Portable-<версия>.zip` в любую папку и запустите `To Picture.exe`. Настройки хранятся рядом, в папке `data`, — можно носить на флешке.
+**Portable:** unzip [`ToPicture-Portable.zip`](https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Portable.zip) anywhere and run `To Picture.exe`. Settings stay next to it in the `data` folder, so it works from a USB stick.
 
-yt-dlp и ffmpeg уже внутри, ставить ничего не нужно. Windows 10 или 11, 64-бит. Движок окна WebView2 в Windows 11 уже есть, на Windows 10 установщик докачает его сам.
+yt-dlp and ffmpeg are included — nothing else to install. Windows 10 or 11, 64-bit. The WebView2 window engine is built into Windows 11; on Windows 10 the installer downloads it if needed.
 
-## Как пользоваться
+**Languages:** English, 简体中文, Español, Português (Brasil), Deutsch, Français, 日本語, 한국어, Türkçe, Русский. The app follows your Windows language; change it in the **⋯** menu.
 
-1. Скопируйте ссылку на видео и вставьте её в поле «Ссылки» (Ctrl+V). Можно несколько, по одной на строку.
-2. Проверьте превью: качество, во что перекодируется, какие озвучки и субтитры попадут в файл. Если у видео несколько озвучек, нужные можно отметить прямо в превью — только для этой ссылки.
-3. Нажмите **Скачать** (Ctrl+Enter). Готовый файл откроется кнопкой **Показать в папке**.
+## How to use
 
-Всё остальное — в разделе **Параметры**: папка, кодек, разрешение, качество, кодировщик, озвучки, субтитры. Тема — в меню **⋯**.
+1. Copy a video link and paste it into **Links** (Ctrl+V). You can add several, one per line.
+2. Check the preview: quality, what it will be converted to, which audio tracks and subtitles go into the file. If a video has several dubs, you can tick the ones you want right in the preview — for that link only.
+3. Click **Download** (Ctrl+Enter). **Show in folder** opens the finished file.
 
-## Частые вопросы
+Everything else is in **Settings**: folder, codec, resolution, quality, encoder, audio tracks, subtitles. Theme and language are in the **⋯** menu.
 
-**Какой кодек выбрать?**
-H.264, если не уверены: такой файл открывается везде. H.265 — меньше файл, ProRes 422 — для монтажа, «Без перекодирования» — как на YouTube.
+## FAQ
 
-**Почему иногда готово за секунды?**
-Если YouTube уже отдаёт H.264 нужного разрешения (обычно до 1080p), программа только скачивает и склеивает дорожки, без перекодирования. 4K YouTube отдаёт только в VP9/AV1 — его приходится перекодировать.
+**Which codec should I pick?**
+H.264 if unsure — it opens everywhere. H.265 makes smaller files, ProRes 422 is for editing, “No re-encoding” keeps the file as YouTube serves it.
 
-**Нужна ли видеокарта?**
-Нет. С ней кодирование быстрее и почти не занимает память; без неё работает процессор.
+**Why is it sometimes done in seconds?**
+If YouTube already serves H.264 at the chosen resolution (usually up to 1080p), the app only downloads and joins the tracks, with no re-encoding. YouTube serves 4K only as VP9/AV1, so 4K has to be re-encoded.
 
-**Скачиваются ли автоматические субтитры?**
-Нет, только официальные. Они встраиваются в файл дорожками и включаются в плеере.
+**Do I need a graphics card?**
+No. With one, encoding is faster and uses almost no memory; without it, the processor does the work.
 
-**Почему файл .mkv, а не .mp4?**
-Когда в видео встроены субтитры, программа сохраняет его в MKV: в MP4 первые субтитры всегда помечаются как «включены», и плееры показывают их сразу. MKV открывают VLC, MPC, PotPlayer и «Медиаплеер» Windows 11. Нужен MP4 — выключите субтитры в **Параметрах**.
+**Are auto-generated subtitles downloaded?**
+No, only official ones. They're embedded as tracks and turned on in the player.
 
-**Видео не скачивается, ошибка 403.**
-Обычно YouTube что-то поменял, и нужен свежий yt-dlp. Программа обновляет его сама раз в сутки и сразу при такой ошибке — попробуйте ещё раз через минуту. Подробности — в разделе **Журнал** внизу окна.
+**Why .mkv and not .mp4?**
+When subtitles are embedded, the file is saved as MKV: in MP4 the first subtitle track is always marked “on”, so players show it right away. MKV opens in VLC, MPC, PotPlayer and the Windows 11 Media Player. Need MP4 — turn subtitles off in **Settings**.
 
-## Сборка из исходников
+**A video won't download, error 403.**
+Usually YouTube changed something and yt-dlp needs an update. The app updates it once a day and immediately after such an error — try again in a minute. Details are in the **Log** at the bottom of the window.
 
-Нужны Python 3.12+, [Inno Setup 6/7](https://jrsoftware.org/isdl.php), а также `yt-dlp.exe` и ffmpeg ([сборка yt-dlp](https://github.com/yt-dlp/FFmpeg-Builds/releases), `win64-gpl-shared`) в папке `installer/payload/bin`.
+## Build from source
+
+You'll need Python 3.12+, [Inno Setup 6/7](https://jrsoftware.org/isdl.php), plus `yt-dlp.exe` and ffmpeg ([yt-dlp build](https://github.com/yt-dlp/FFmpeg-Builds/releases), `win64-gpl-shared`) in `installer/payload/bin`.
 
 ```bat
 pip install -r requirements.txt
-python ToPicture.pyw       :: запуск из исходников
-build_installer.bat        :: exe, установщик и portable zip — в installer\output
+python ToPicture.pyw       :: run from source
+build_installer.bat        :: exe, installer and portable zip in installer\output
 ```
 
-Интерфейс — [`ui/index.html`](ui/index.html) (HTML/CSS в окне [pywebview](https://github.com/r0x0r/pywebview)), логика — [`ToPicture.pyw`](ToPicture.pyw), установщик — [`installer/ToPicture.iss`](installer/ToPicture.iss).
+UI — [`ui/index.html`](ui/index.html) (HTML/CSS in a [pywebview](https://github.com/r0x0r/pywebview) window), translations — [`ui/locales/`](ui/locales), logic — [`ToPicture.pyw`](ToPicture.pyw), installer — [`installer/ToPicture.iss`](installer/ToPicture.iss).
 
-## Лицензии
+**Translations:** each language is one JSON file in `ui/locales/` (`en.json` is the reference). To add a language, copy `en.json`, translate the values and open a pull request.
 
-To Picture — [MIT](LICENSE). В комплекте: [ffmpeg](https://ffmpeg.org) (GPL), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) — подробности и ссылки на исходники в [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Кадры на скриншотах — Blender Studio, CC BY 4.0.
+## Licenses
 
-Скачивайте только то, на что у вас есть права, и соблюдайте условия YouTube.
+To Picture — [MIT](LICENSE). Bundled: [ffmpeg](https://ffmpeg.org) (GPL), [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense) — details and source links in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). Frames in the screenshots — Blender Studio, CC BY 4.0.
+
+Only download what you have the rights to, and follow YouTube's terms.

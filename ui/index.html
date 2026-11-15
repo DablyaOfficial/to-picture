@@ -29,6 +29,14 @@
 }
 * { box-sizing: border-box; }
 html, body { margin:0; height:100%; overflow:hidden; }
+/* китайский, японский, корейский — системные шрифты Windows для этих языков (Segoe UI их не содержит) */
+:root:lang(zh) { --sans:'Segoe UI Variable Text','Microsoft YaHei UI','Microsoft YaHei',sans-serif; }
+:root:lang(ja) { --sans:'Segoe UI Variable Text','Yu Gothic UI','Meiryo UI',sans-serif; }
+:root:lang(ko) { --sans:'Segoe UI Variable Text','Malgun Gothic',sans-serif; }
+[lang="zh-CN"] { font-family:'Microsoft YaHei UI','Segoe UI',sans-serif; }
+[lang="ja"] { font-family:'Yu Gothic UI','Segoe UI',sans-serif; }
+[lang="ko"] { font-family:'Malgun Gothic','Segoe UI',sans-serif; }
+.amenu .mi.dis { color:var(--text3); }
 body {
   background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:20px;
   -webkit-font-smoothing:antialiased; user-select:none; cursor:default;
@@ -120,7 +128,7 @@ textarea#urls::placeholder { color:var(--text3); }
 .pv-line { font-size:12px; line-height:16px; color:var(--text2); margin-bottom:8px; }
 /* карточка v2: «Видео / Озвучка / Субтитры» — одна колонка ключ-значение, строки по 22 px */
 .pv-grid {
-  display:grid; grid-template-columns:72px minmax(0,1fr); grid-auto-rows:22px; align-items:center;
+  display:grid; grid-template-columns:minmax(72px,max-content) minmax(0,1fr); column-gap:10px; grid-auto-rows:22px; align-items:center;
   font-size:12px; line-height:16px; font-variant-numeric:tabular-nums;
 }
 .pv-grid .k { color:var(--text3); }
@@ -187,7 +195,7 @@ textarea#urls::placeholder { color:var(--text3); }
 
 /* ---------- settings ---------- */
 .grid {
-  display:grid; grid-template-columns:88px minmax(0,1fr) 88px minmax(0,1fr); column-gap:12px; row-gap:8px;
+  display:grid; grid-template-columns:minmax(88px,max-content) minmax(0,1fr) minmax(88px,max-content) minmax(0,1fr); column-gap:12px; row-gap:8px;
   align-items:center; padding:0 0 12px 20px;
 }
 .grid .lab { color:var(--text2); }
@@ -300,7 +308,7 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
 
 /* ---------- reflow ---------- */
 @media (max-width:779px) {
-  .grid { grid-template-columns:88px minmax(0,1fr); }
+  .grid { grid-template-columns:minmax(88px,max-content) minmax(0,1fr); }
 }
 @media (max-width:759px) {
   .pv { height:108px; }
@@ -319,19 +327,19 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
     <!-- ссылки -->
     <section class="sec">
       <div class="links-head">
-        <span class="h">Ссылки</span>
-        <span class="sub">по одной на строку</span>
+        <span class="h" data-i18n="links.title"></span>
+        <span class="sub" data-i18n="links.sub"></span>
         <span class="sp"></span>
         <span class="tools">
-          <button class="tbtn" id="bPaste" title="Вставить из буфера обмена">Вставить</button>
-          <button class="tbtn" id="bClear">Очистить</button>
-          <button class="tbtn dots" id="bApp" title="Меню приложения" aria-haspopup="menu"><i></i><i></i><i></i></button>
+          <button class="tbtn" id="bPaste" data-i18n="links.paste" data-i18n-title="links.pasteTip"></button>
+          <button class="tbtn" id="bClear" data-i18n="links.clear"></button>
+          <button class="tbtn dots" id="bApp" data-i18n-title="app.menu" aria-haspopup="menu"><i></i><i></i><i></i></button>
         </span>
       </div>
       <div class="input" id="inputBox">
         <div class="gutter"><div class="gutter-in tab" id="gutter"></div></div>
         <textarea id="urls" spellcheck="false" wrap="off" placeholder="https://www.youtube.com/watch?v=…"></textarea>
-        <div class="urllist hidden" id="urlList" title="Нажмите, чтобы изменить список"></div>
+        <div class="urllist hidden" id="urlList" data-i18n-title="links.editTip"></div>
       </div>
     </section>
 
@@ -340,7 +348,7 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
       <div class="pv" id="pv">
         <div class="thumb">
           <img id="pvImg" alt="">
-          <div class="center" id="pvThumbMsg">нет ссылки</div>
+          <div class="center" id="pvThumbMsg"></div>
           <span class="chip hidden" id="pvDur"></span>
         </div>
         <div class="pv-meta" id="pvMeta"></div>
@@ -351,47 +359,47 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
     <section class="sec csec" id="setSec">
       <button class="chead" id="setHead" aria-expanded="false">
         <svg class="chev" width="12" height="12" viewBox="0 0 12 12"><path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
-        <span class="t">Параметры</span>
+        <span class="t" data-i18n="set.title"></span>
         <span class="sum ell tab" id="setSum"></span>
       </button>
       <div class="grid hidden" id="setGrid">
-        <span class="lab">Папка</span>
+        <span class="lab" data-i18n="set.folder"></span>
         <div class="wide folder">
           <div class="field" id="outDir"></div>
-          <button class="btn" id="bBrowse">Обзор…</button>
+          <button class="btn" id="bBrowse" data-i18n="set.browse"></button>
         </div>
 
-        <span class="lab">Кодек</span>
+        <span class="lab" data-i18n="set.codec"></span>
         <div data-select="codec"></div>
-        <span class="lab">Разрешение</span>
+        <span class="lab" data-i18n="set.resolution"></span>
         <div data-select="max_height"></div>
 
-        <span class="lab x264">Качество</span>
+        <span class="lab x264" data-i18n="set.quality"></span>
         <div class="wide crf x264">
           <input type="range" id="crf" min="10" max="30" step="1">
           <span class="n tab" id="crfN"></span>
           <span class="w" id="crfW"></span>
-          <span class="note">CRF 10–30, меньше — лучше</span>
+          <span class="note" data-i18n="set.crfNote"></span>
         </div>
 
-        <span class="lab x264">Скорость</span>
+        <span class="lab x264" data-i18n="set.speed"></span>
         <div class="x264" data-select="preset"></div>
-        <span class="lab x264">Звук</span>
+        <span class="lab x264" data-i18n="set.sound"></span>
         <div class="x264" data-select="audio"></div>
 
-        <span class="lab gpu-on">Кодировщик</span>
+        <span class="lab gpu-on" data-i18n="set.encoder"></span>
         <div class="gpu-on" data-select="encoder"></div>
         <span class="hint2 gpu-on" id="encHint"></span>
 
-        <span class="lab">Озвучка</span>
+        <span class="lab" data-i18n="set.audio"></span>
         <div data-select="audio_lang"></div>
-        <span class="hint2">каждая — отдельная дорожка, выбирается в плеере</span>
+        <span class="hint2" data-i18n="set.audioHint"></span>
 
-        <span class="lab">Субтитры</span>
+        <span class="lab" data-i18n="set.subs"></span>
         <div data-select="subs"></div>
-        <span class="lab subs-on">Язык</span>
+        <span class="lab subs-on" data-i18n="set.subsLang"></span>
         <div class="subs-on" data-select="subs_lang"></div>
-        <span class="hint2 subs-off">только официальные; автоматические не скачиваются</span>
+        <span class="hint2 subs-off" data-i18n="set.subsOffHint"></span>
       </div>
     </section>
 
@@ -402,15 +410,15 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
       <div class="result hidden" id="result">
         <div class="rl">
           <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.5 5 9l4.5-6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
-          <span class="t">Сохранено</span>
+          <span class="t" data-i18n="res.saved"></span>
           <span class="p" id="resPath"></span>
           <span class="s tab" id="resSize"></span>
         </div>
         <div class="rl rl2 hidden" id="resSrt">
           <span style="width:12px;flex:none"></span>
-          <span class="t2">субтитры</span>
+          <span class="t2" data-i18n="res.subs"></span>
           <span class="p" id="resSrtName"></span>
-          <span class="s" style="color:var(--text3)">рядом с видео</span>
+          <span class="s" style="color:var(--text3)" data-i18n="res.nextTo"></span>
         </div>
       </div>
       <div class="errbox hidden" id="errBox">
@@ -427,10 +435,10 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
       <div style="display:flex;align-items:center;gap:8px;flex:none">
         <button class="chead" id="logHead" aria-expanded="false" style="flex:1;min-width:0">
           <svg class="chev" width="12" height="12" viewBox="0 0 12 12"><path d="M4.5 2.5 8 6l-3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.3"/></svg>
-          <span class="t">Журнал</span>
+          <span class="t" data-i18n="log.title"></span>
           <span class="sum ell" id="logSum"></span>
         </button>
-        <button class="tbtn hidden" id="bCopyLog">Копировать</button>
+        <button class="tbtn hidden" id="bCopyLog" data-i18n="log.copy"></button>
       </div>
       <div class="logbox hidden" id="logBox"></div>
     </section>
@@ -438,8 +446,8 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
 
   <footer class="foot">
     <span class="hint" id="hint"></span>
-    <button class="btn" id="bFolder" disabled>Показать в папке</button>
-    <button class="btn primary" id="bMain" disabled>Скачать</button>
+    <button class="btn" id="bFolder" disabled data-i18n="btn.folder"></button>
+    <button class="btn primary" id="bMain" disabled data-i18n="btn.download"></button>
   </footer>
 </div>
 
@@ -455,76 +463,112 @@ const CHEV_SM = '<svg width="10" height="10" viewBox="0 0 12 12"><path d="M2.5 4
 const MENU_CK = '<svg class="ck" width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 6.5 5 9l4.5-6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>';
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
+// ---------------------------------------------------------------- i18n
+// Строки — в ui/locales/<код>.json (их же читает ToPicture.pyw). Python отдаёт текущий язык и английский запасной.
+let LANG = 'en', L = {}, LF = {}, LANGS = [], SYS_LANG = 'en';
+let PR = new Intl.PluralRules('en');
+function t(key, p = {}) {
+  let s = L[key] ?? LF[key] ?? key;
+  if (s && typeof s === 'object') {
+    const n = Number(p.n ?? 0);
+    // для «2,4 млн просмотров» и т. п. — форма «many», если язык её различает
+    const cat = n >= 1000 && s.many ? 'many' : PR.select(n);
+    s = s[cat] ?? s.other ?? Object.values(s)[0];
+  }
+  return String(s).replace(/\{(\w+)\}/g, (_, k) => p[k] ?? '');
+}
+function applyStatic() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll('[data-i18n]').forEach(e => e.textContent = t(e.dataset.i18n));
+  document.querySelectorAll('[data-i18n-title]').forEach(e => e.title = t(e.dataset.i18nTitle));
+}
+// в языках, где названия языков пишутся со строчной (_lower в locales), — строчные внутри фразы
+const lc = (x) => L._lower ? String(x).toLocaleLowerCase(LANG) : String(x);
+const nf = (d) => new Intl.NumberFormat(LANG, { minimumFractionDigits: d, maximumFractionDigits: d });
+
 // ---------------------------------------------------------------- options
-const OPTS = {
-  codec: [
-    { v:'h264', l:'H.264', h:'открывается везде', mh:'открывается везде, по умолчанию', name:'H.264' },
-    { v:'h265', l:'H.265', h:'меньше файл', mh:'меньше файл, тяжелее монтаж', name:'H.265' },
-    { v:'prores', l:'ProRes 422', h:'лёгкий монтаж', mh:'большой файл, лёгкий монтаж', name:'ProRes 422' },
-    { sep:true },
-    { v:'copy', l:'Без перекодирования', h:'как на YouTube', mh:'исходный vp9/av1, не везде откроется', name:'' },
-  ],
-  max_height: [
-    { v:'best', l:'Лучшее' }, { v:'2160', l:'2160p' }, { v:'1440', l:'1440p' },
-    { v:'1080', l:'1080p' }, { v:'720', l:'720p' }, { v:'480', l:'480p' },
-  ],
-  preset: [
-    { v:'ultrafast', l:'ultrafast', h:'быстро, большой файл' }, { v:'superfast', l:'superfast', h:'' },
-    { v:'veryfast', l:'veryfast', h:'' }, { v:'faster', l:'faster', h:'' }, { v:'fast', l:'fast', h:'' },
-    { v:'medium', l:'medium', h:'баланс' }, { v:'slow', l:'slow', h:'меньше файл, дольше' },
-    { v:'slower', l:'slower', h:'' }, { v:'veryslow', l:'veryslow', h:'очень долго' },
-  ],
-  audio: [
-    { v:'128k', l:'AAC 128 кбит/с' }, { v:'192k', l:'AAC 192 кбит/с' },
-    { v:'256k', l:'AAC 256 кбит/с' }, { v:'320k', l:'AAC 320 кбит/с' },
-  ],
-  theme: [
-    { v:'system', l:'Как в системе' }, { v:'light', l:'Светлая' }, { v:'dark', l:'Тёмная' },
-  ],
-  audio_lang: [
-    { v:'orig', l:'Только оригинал' },
-    { v:'orig_ru', l:'Оригинал + русская', h:'если есть', mh:'русская — если есть' },
-    { v:'orig_ru_en', l:'Оригинал + русская + английская', h:'', mh:'каждая — если есть' },
-    { sep:true },
-    { v:'all', l:'Все дорожки', h:'', mh:'файл заметно больше' },
-  ],
-  subs: [
-    { v:'off', l:'Не добавлять' },
-    { v:'embed', l:'Встроить в видео', h:'файл .mkv', mh:'файл будет .mkv, субтитры включаются в плеере' },
-    { v:'embed_srt', l:'Встроить и сохранить .srt', h:'файл .mkv', mh:'файл .mkv и ещё .srt рядом' },
-  ],
-  subs_lang: [
-    { v:'ru_en', l:'Русские и английские' },
-    { v:'ru', l:'Только русские' },
-    { v:'en', l:'Только английские' },
-    { v:'audio', l:'Под выбранные озвучки', mh:'на языках дорожек в файле' },
-    { v:'all', l:'Все языки' },
-  ],
-};
-OPTS.encoder = [
-  { v:'gpu', l:'Видеокарта', h:'', mh:'быстро, мало памяти' },
-  { v:'cpu', l:'Процессор', h:'', mh:'медленно, много памяти' },
-];
-const DEF_AUDIO = 'orig_ru', DEF_SUBS = 'embed', DEF_SUBS_LANG = 'ru_en';
+let OPTS = {};
+const uiLangName = () => langName(baseLang(LANG));
+function buildOpts() {
+  const lang = uiLangName(), lang_lc = lc(lang);
+  const uiIsEn = baseLang(LANG) === 'en';
+  OPTS = {
+    codec: [
+      { v:'h264', l:'H.264', h:t('codec.h264.h'), mh:t('codec.h264.mh'), name:'H.264' },
+      { v:'h265', l:'H.265', h:t('codec.h265.h'), mh:t('codec.h265.mh'), name:'H.265' },
+      { v:'prores', l:'ProRes 422', h:t('codec.prores.h'), mh:t('codec.prores.mh'), name:'ProRes 422' },
+      { sep:true },
+      { v:'copy', l:t('codec.copy.l'), h:t('codec.copy.h'), mh:t('codec.copy.mh'), name:'' },
+    ],
+    max_height: [
+      { v:'best', l:t('res.best') }, { v:'2160', l:'2160p' }, { v:'1440', l:'1440p' },
+      { v:'1080', l:'1080p' }, { v:'720', l:'720p' }, { v:'480', l:'480p' },
+    ],
+    preset: [
+      { v:'ultrafast', l:'ultrafast', h:t('preset.ultrafast') }, { v:'superfast', l:'superfast', h:'' },
+      { v:'veryfast', l:'veryfast', h:'' }, { v:'faster', l:'faster', h:'' }, { v:'fast', l:'fast', h:'' },
+      { v:'medium', l:'medium', h:t('preset.medium') }, { v:'slow', l:'slow', h:t('preset.slow') },
+      { v:'slower', l:'slower', h:'' }, { v:'veryslow', l:'veryslow', h:t('preset.veryslow') },
+    ],
+    audio: ['128', '192', '256', '320'].map(n => ({ v: n + 'k', l: t('audio.kbps', { n }) })),
+    theme: [
+      { v:'system', l:t('theme.system') }, { v:'light', l:t('theme.light') }, { v:'dark', l:t('theme.dark') },
+    ],
+    // «ui» — язык интерфейса; если интерфейс английский, варианты с английским схлопываются
+    audio_lang: [
+      { v:'orig', l:t('alang.orig') },
+      uiIsEn
+        ? { v:'orig_ui', l:t('alang.orig_en'), h:t('alang.orig_ui.h'), mh:t('alang.orig_ui.mh', { lang, lang_lc }) }
+        : { v:'orig_ui', l:t('alang.orig_ui', { lang, lang_lc }), h:t('alang.orig_ui.h'), mh:t('alang.orig_ui.mh', { lang, lang_lc }) },
+      ...(uiIsEn ? [] : [{ v:'orig_ui_en', l:t('alang.orig_ui_en', { lang, lang_lc }), h:'', mh:t('alang.orig_ui_en.mh') }]),
+      { sep:true },
+      { v:'all', l:t('alang.all'), h:'', mh:t('alang.all.mh') },
+    ],
+    subs: [
+      { v:'off', l:t('subs.off') },
+      { v:'embed', l:t('subs.embed'), h:t('subs.embed.h'), mh:t('subs.embed.mh') },
+      { v:'embed_srt', l:t('subs.embed_srt'), h:t('subs.embed_srt.h'), mh:t('subs.embed_srt.mh') },
+    ],
+    subs_lang: [
+      ...(uiIsEn ? [] : [{ v:'ui_en', l:t('slang.ui_en', { lang, lang_lc }) }, { v:'ui', l:t('slang.ui', { lang, lang_lc }) }]),
+      { v:'en', l:t('slang.en') },
+      { v:'audio', l:t('slang.audio'), mh:t('slang.audio.mh') },
+      { v:'all', l:t('slang.all') },
+    ],
+    encoder: [
+      { v:'gpu', l:t('enc.gpu'), h:'', mh:t('enc.gpu.mh') },
+      { v:'cpu', l:t('enc.cpu'), h:'', mh:t('enc.cpu.mh') },
+    ],
+  };
+}
+const DEF_AUDIO = 'orig_ui', DEF_SUBS = 'embed';
+let DEF_SUBS_LANG = 'ui_en';
+// при английском интерфейсе «язык интерфейса + английский» = просто английский
+function normalizeForLang(s) {
+  DEF_SUBS_LANG = baseLang(LANG) === 'en' ? 'en' : 'ui_en';
+  if (baseLang(LANG) === 'en') {
+    if (s.audio_lang === 'orig_ui_en') s.audio_lang = 'orig_ui';
+    if (s.subs_lang === 'ui_en' || s.subs_lang === 'ui') s.subs_lang = 'en';
+  }
+}
 // видеокарта используется только для H.264/H.265 и только если она нашлась
 const useGpu = () => !!S.gpu && S.settings.encoder === 'gpu' && (S.settings.codec === 'h264' || S.settings.codec === 'h265');
 const optOf = (k, v) => OPTS[k].find(o => o.v === v) || OPTS[k].find(o => !o.sep);
-const LANG_NAMES = (() => { try { return new Intl.DisplayNames(['ru'], { type: 'language' }); } catch { return null; } })();
 function langName(code) {
-  if (!code || code === 'und') return 'без языка';
+  if (!code || code === 'und') return t('lang.none');
   let n = code;
-  try { n = LANG_NAMES?.of(code) || code; } catch {}
-  return n.charAt(0).toUpperCase() + n.slice(1);
+  try { n = new Intl.DisplayNames([LANG], { type: 'language' }).of(code) || code; } catch {}
+  return n.charAt(0).toLocaleUpperCase(LANG) + n.slice(1);
 }
 const baseLang = (c) => (c || '').split('-')[0].toLowerCase();
-const crfWord = (n) => n <= 13 ? 'почти без сжатия' : n <= 17 ? 'визуально без потерь' : n <= 21 ? 'высокое' : n <= 25 ? 'среднее' : 'черновое';
+const crfWord = (n) => t(n <= 13 ? 'crf.1' : n <= 17 ? 'crf.2' : n <= 21 ? 'crf.3' : n <= 25 ? 'crf.4' : 'crf.5');
 
 // ---------------------------------------------------------------- formatting
-const plural = (n, f) => { const a = n % 10, b = n % 100; return f[a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2]; };
-const dec = (x, d) => x.toFixed(d).replace('.', ',');
-function sizeUnit(b) { return b >= 1024 ** 3 ? [1024 ** 3, 'ГБ', 2] : b >= 1024 ** 2 ? [1024 ** 2, 'МБ', 1] : [1024, 'КБ', 0]; }
-function fmtSize(b) { if (!b && b !== 0) return ''; const [d, u, p] = sizeUnit(b); const v = b / d; return dec(v, v >= 100 ? 0 : p) + ' ' + u; }
-function fmtPair(a, b) { const [d, u, p] = sizeUnit(b); const f = (x) => dec(x / d, x / d >= 100 ? 0 : p); return `${f(a)} из ${f(b)} ${u}`; }
+function sizeUnit(b) { return b >= 1024 ** 3 ? [1024 ** 3, t('unit.GB'), 2] : b >= 1024 ** 2 ? [1024 ** 2, t('unit.MB'), 1] : [1024, t('unit.KB'), 0]; }
+function fmtSize(b) { if (!b && b !== 0) return ''; const [d, u, p] = sizeUnit(b); const v = b / d; return nf(v >= 100 ? 0 : p).format(v) + ' ' + u; }
+function fmtPair(a, b) { const [d, u, p] = sizeUnit(b); const f = (x) => nf(x / d >= 100 ? 0 : p).format(x / d); return t('size.of', { a: f(a), b: f(b), u }); }
+const fmtSpeed = (bps) => fmtSize(bps) + t('unit.perSec');
+const fmtDec1 = (x) => nf(1).format(x);
 function fmtTime(s) {
   if (s == null || !isFinite(s)) return '';
   s = Math.max(0, Math.round(s));
@@ -533,15 +577,16 @@ function fmtTime(s) {
 }
 function fmtViews(n) {
   if (n == null) return '';
-  if (n >= 1e9) return dec(n / 1e9, 1).replace(',0', '') + ' млрд просмотров';
-  if (n >= 1e6) return dec(n / 1e6, 1).replace(',0', '') + ' млн просмотров';
-  if (n >= 1e3) return Math.round(n / 1e3) + ' тыс. просмотров';
-  return n + ' ' + plural(n, ['просмотр', 'просмотра', 'просмотров']);
+  const v = new Intl.NumberFormat(LANG, { notation: 'compact', maximumFractionDigits: 1 }).format(n);
+  return t('views', { n, v });
 }
-const MONTHS = ['янв.', 'февр.', 'мар.', 'апр.', 'мая', 'июн.', 'июл.', 'авг.', 'сент.', 'окт.', 'нояб.', 'дек.'];
-function fmtDate(d) { return d && d.length === 8 ? `${+d.slice(6)} ${MONTHS[+d.slice(4, 6) - 1]} ${d.slice(0, 4)}` : ''; }
+function fmtDate(d) {
+  if (!d || d.length !== 8) return '';
+  const dt = new Date(Date.UTC(+d.slice(0, 4), +d.slice(4, 6) - 1, +d.slice(6)));
+  return new Intl.DateTimeFormat(LANG, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(dt);
+}
 const qTag = (h, fps) => h ? `${h}p${fps && fps > 31 ? Math.round(fps) : ''}` : '';
-const groupNum = (n) => Math.round(n).toLocaleString('ru-RU');
+const groupNum = (n) => Math.round(n).toLocaleString(LANG);
 
 // средняя обрезка пути: диск и хвост имени файла остаются видны
 const measureCtx = document.createElement('canvas').getContext('2d');
@@ -688,25 +733,25 @@ function closeMenu() {
 
 // ---------------------------------------------------------------- settings
 function settingsSummary() {
-  const s = S.settings, c = optOf('codec', s.codec), res = optOf('max_height', s.max_height).l.toLowerCase();
+  const s = S.settings, c = optOf('codec', s.codec), res = lc(optOf('max_height', s.max_height).l);
   const parts = [];
   if (s.codec === 'h264' || s.codec === 'h265') parts.push(c.l + (useGpu() ? ' · ' + S.gpu.short : ''), `CRF ${s.crf}`, s.preset, optOf('audio', s.audio).l);
   else if (s.codec === 'prores') parts.push('ProRes 422', 'PCM');
-  else parts.push('Без перекодирования');
+  else parts.push(t('sum.noReencode'));
   parts.push(res);
   // озвучка и субтитры — только если отличаются от умолчаний, перед папкой (папка обрезается первой)
-  if (s.audio_lang !== DEF_AUDIO) parts.push('озвучка: ' + optOf('audio_lang', s.audio_lang).l.toLowerCase());
-  if (s.subs === 'off') parts.push('без субтитров');
+  if (s.audio_lang !== DEF_AUDIO) parts.push(t('sum.audio', { v: lc(optOf('audio_lang', s.audio_lang).l) }));
+  if (s.subs === 'off') parts.push(t('sum.noSubs'));
   else if (s.subs !== DEF_SUBS || s.subs_lang !== DEF_SUBS_LANG)
-    parts.push('субтитры: ' + optOf('subs_lang', s.subs_lang).l.toLowerCase() + (s.subs === 'embed_srt' ? ' + .srt' : ''));
+    parts.push(t('sum.subs', { v: lc(optOf('subs_lang', s.subs_lang).l) + (s.subs === 'embed_srt' ? ' + .srt' : '') }));
   parts.push(s.out_dir);
   return parts.join(' · ');
 }
 function codecDesc() {
   const s = S.settings;
-  if (s.codec === 'h264' || s.codec === 'h265') return `${optOf('codec', s.codec).l}${useGpu() ? ' на видеокарте' : ''}, CRF ${s.crf}, ${s.preset}`;
+  if (s.codec === 'h264' || s.codec === 'h265') return t('desc.codec', { codec: optOf('codec', s.codec).l, gpu: useGpu() ? t('desc.onGpu') : '', crf: s.crf, preset: s.preset });
   if (s.codec === 'prores') return 'ProRes 422, PCM';
-  return 'без перекодирования';
+  return t('desc.noReencode');
 }
 function renderSettings() {
   const s = S.settings;
@@ -720,8 +765,8 @@ function renderSettings() {
   document.querySelectorAll('.x264').forEach(e => e.classList.toggle('hidden', !x264));
   document.querySelectorAll('.gpu-on').forEach(e => e.classList.toggle('hidden', !x264 || !S.gpu));
   $('encHint').textContent = s.encoder === 'gpu'
-    ? `${S.gpu ? S.gpu.vendor + ' ' + S.gpu.short : ''} — в разы быстрее, почти не занимает память`
-    : 'процессор: медленнее, при 4K может занять 2–4 ГБ памяти';
+    ? t('enc.hintGpu', { gpu: S.gpu ? S.gpu.vendor + ' ' + S.gpu.short : '' })
+    : t('enc.hintCpu');
   document.querySelectorAll('.subs-on').forEach(e => e.classList.toggle('hidden', s.subs === 'off'));
   document.querySelectorAll('.subs-off').forEach(e => e.classList.toggle('hidden', s.subs !== 'off'));
   fitMiddle($('outDir'), s.out_dir);
@@ -828,7 +873,7 @@ function schedulePreview() {
 }
 function getPreview(url) {
   const c = S.preview.cache;
-  if (!c.has(url)) c.set(url, api.preview(url).catch(e => ({ ok: false, error: 'Не удалось получить данные.' })));
+  if (!c.has(url)) c.set(url, api.preview(url).catch(e => ({ ok: false, error: t('pv.fetchFailed') })));
   return c.get(url);
 }
 async function showPreviewFor(url, fromEdit) {
@@ -838,7 +883,7 @@ async function showPreviewFor(url, fromEdit) {
   if (!url) {
     const hasText = ta.value.trim() && fromEdit;
     S.preview.shownData = null;
-    return hasText ? renderPreviewState('error', { err: 'Строка не похожа на ссылку.', title: 'Ссылка не распознана', url: textLines().filter(s => s.trim()).pop() }) : renderPreviewState('empty');
+    return hasText ? renderPreviewState('error', { err: t('pv.badLink'), title: t('pv.unrecognized'), url: textLines().filter(s => s.trim()).pop() }) : renderPreviewState('empty');
   }
   renderPreviewState('loading', { url });
   const data = await getPreview(url);
@@ -846,7 +891,7 @@ async function showPreviewFor(url, fromEdit) {
   if (!data || !data.ok) {
     S.preview.cache.delete(url);   // ошибку не кешируем — можно попробовать ещё раз
     S.preview.shownData = null;
-    return renderPreviewState('error', { err: data?.error || 'Не удалось получить данные.', url });
+    return renderPreviewState('error', { err: data?.error || t('pv.fetchFailed'), url });
   }
   data.url = url;
   S.preview.shownData = data;
@@ -857,17 +902,17 @@ function renderPreviewState(state, o = {}) {
   img.classList.remove('on'); img.removeAttribute('src');
   dur.classList.add('hidden');
   if (state === 'empty') {
-    msg.innerHTML = 'нет ссылки';
-    meta.innerHTML = '<div style="color:var(--text3)">Превью последней ссылки в списке</div>';
+    msg.textContent = t('pv.noLink');
+    meta.innerHTML = `<div style="color:var(--text3)">${esc(t('pv.emptyHint'))}</div>`;
   } else if (state === 'loading') {
     msg.innerHTML = '<svg class="spin" width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="var(--line-strong)" stroke-width="2"/><path d="M10 2a8 8 0 0 1 8 8" fill="none" stroke="var(--text2)" stroke-width="2" stroke-linecap="round"/></svg>';
     meta.innerHTML = `<div class="sk" style="width:78%;margin-top:4px"></div><div class="sk" style="width:52%;margin-top:8px"></div>
       <div class="sk" style="width:30%;height:10px;margin-top:12px"></div><div style="flex:1"></div>
-      <div style="font-size:12px;line-height:16px;color:var(--text2)">Получение данных…</div>
+      <div style="font-size:12px;line-height:16px;color:var(--text2)">${esc(t('pv.loading'))}</div>
       <div class="pv-url ell">${esc(o.url)}</div>`;
   } else if (state === 'error') {
     msg.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8.5" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M10 5.5v5.5" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="14" r="1" fill="currentColor"/></svg>';
-    meta.innerHTML = `<div class="pv-title">${esc(o.title || 'Видео недоступно')}</div><div class="pv-err">${esc(o.err)}</div>
+    meta.innerHTML = `<div class="pv-title">${esc(o.title || t('pv.unavailable'))}</div><div class="pv-err">${esc(o.err)}</div>
       <div style="flex:1"></div><div class="pv-url ell" title="${esc(o.url)}">${esc(o.url)}</div>`;
   }
 }
@@ -893,7 +938,7 @@ function outputLabel(d) {
   const { f, copy } = selectVideo(d);
   const q = f ? qTag(f.h, f.fps) : '';
   // YouTube уже отдаёт H.264 нужного разрешения — видео только перепаковывается
-  const c = copy ? 'без перекодирования' : s.codec === 'copy' ? (f?.vc || 'исходный') : optOf('codec', s.codec).name;
+  const c = copy ? t('pv.noReencode') : s.codec === 'copy' ? (f?.vc || t('pv.source')) : optOf('codec', s.codec).name;
   // со встроенными субтитрами файл всегда MKV (см. process() в ToPicture.pyw)
   const box = subsChosen(d).length || s.codec === 'copy' ? 'MKV' : s.codec === 'prores' ? 'MOV' : 'MP4';
   return [copy ? '' : q, c, box].filter(Boolean).join(' · ');
@@ -905,10 +950,10 @@ function renderPreview(d) {
     if (img.getAttribute('src') !== d.thumb) {
       img.classList.remove('on');
       img.onload = () => img.classList.add('on');
-      img.onerror = () => { img.classList.remove('on'); msg.textContent = 'нет миниатюры'; };
+      img.onerror = () => { img.classList.remove('on'); msg.textContent = t('pv.noThumb'); };
       img.src = d.thumb;
     } else img.classList.add('on');
-  } else msg.textContent = 'нет миниатюры';
+  } else msg.textContent = t('pv.noThumb');
   if (d.duration) { dur.textContent = fmtTime(d.duration); dur.classList.remove('hidden'); } else dur.classList.add('hidden');
   const byline = [d.channel, fmtViews(d.views), fmtDate(d.date)].filter(Boolean).join(' · ');
   const sv = selectVideo(d).f;
@@ -918,10 +963,10 @@ function renderPreview(d) {
     <div class="pv-channel ell tab" title="${esc(byline)}">${esc(byline)}</div>
     <div style="flex:1"></div>
     <div class="pv-grid">
-      <span class="k">Видео</span>
+      <span class="k">${esc(t('pv.video'))}</span>
       <div class="v"><span class="b val">${esc(src || '—')}</span><span class="arrow">→</span><span class="shrink">${esc(outputLabel(d))}</span></div>
-      <span class="k" id="pvAudioK">Озвучка</span><div class="v" id="pvAudio"></div>
-      <span class="k">Субтитры</span><div class="v" id="pvSubs"></div>
+      <span class="k" id="pvAudioK">${esc(t('pv.audio'))}</span><div class="v" id="pvAudio"></div>
+      <span class="k">${esc(t('pv.subs'))}</span><div class="v" id="pvSubs"></div>
     </div>`;
   renderAudioCell(d);
   renderSubsCell(d);
@@ -938,7 +983,8 @@ function pickAudio(tracks, rule) {
     out.sort((a, b) => (a.original === b.original ? want.indexOf(baseLang(a.lang)) - want.indexOf(baseLang(b.lang)) : a.original ? -1 : 1));
     return out.length ? out : [orig];
   }
-  const extra = { orig: [], orig_ru: ['ru'], orig_ru_en: ['ru', 'en'] }[rule] || ['ru'];
+  const ui = baseLang(LANG);  // «ui» в правилах — язык интерфейса
+  const extra = { orig: [], orig_ui: [ui], orig_ui_en: [ui, 'en'] }[rule] || [ui];
   const out = [orig];
   for (const l of extra) {
     const t = tracks.find(t => baseLang(t.lang) === l);
@@ -951,7 +997,7 @@ function pickSubs(avail, rule, audioLangs, origLang) {
   if (rule === 'all') return avail.slice();
   const langs = rule === 'audio'
     ? (audioLangs.length ? audioLangs.map(baseLang) : [baseLang(origLang)])
-    : ({ ru_en: ['ru', 'en'], ru: ['ru'], en: ['en'] }[rule] || ['ru', 'en']);
+    : ({ ui_en: [baseLang(LANG), 'en'], ui: [baseLang(LANG)], en: ['en'] }[rule] || [baseLang(LANG), 'en']);
   const out = [];
   for (const l of [...new Set(langs)]) if (l) out.push(...one(l));
   return out;
@@ -979,17 +1025,17 @@ function renderAudioCell(d) {
     return;
   }
   const n = tracks.length;
-  const label = cur.length === n ? `Все (${n})` : namesShort(cur.map(t => t.lang));
+  const label = cur.length === n ? t('pv.all', { n }) : namesShort(cur.map(x => x.lang));
   const note = ov
-    ? `для этой ссылки · по настройке: ${namesShort(rule.map(t => t.lang), 3).toLowerCase()}`
-    : `по настройке · у видео ${n} ${plural(n, ['дорожка', 'дорожки', 'дорожек'])}`;
+    ? t('pv.noteOverride', { names: lc(namesShort(rule.map(x => x.lang), 3)) })
+    : t('pv.noteRule', { n });
   cell.innerHTML = `
     <button class="mbtn" id="pvAudioBtn" aria-haspopup="listbox" ${ov ? 'style="font-weight:600"' : ''}>${esc(label)}${CHEV_SM}</button>
     <span class="note" title="${esc(note)}">${esc(note)}</span>
-    ${ov ? '<button class="tbtn reset" id="pvAudioReset">сбросить</button>' : ''}`;
+    ${ov ? `<button class="tbtn reset" id="pvAudioReset">${esc(t('pv.reset'))}</button>` : ''}`;
   const btn = $('pvAudioBtn');
   btn.disabled = S.running;
-  btn.title = 'В файл встроятся: ' + cur.map(t => tName(t.lang) + (t.original ? ' (оригинал)' : '')).join(', ');
+  btn.title = t('pv.embedTip', { list: cur.map(x => tName(x.lang) + (x.original ? t('pv.originalParen') : '')).join(', ') });
   btn.addEventListener('click', () => (openMenu && openMenu.anchor === btn) ? closeMenu() : showTrackMenu(btn, d));
   btn.addEventListener('keydown', (e) => { if (e.key === 'ArrowDown' || (e.altKey && e.key === 'ArrowDown')) { e.preventDefault(); showTrackMenu(btn, d); } });
   $('pvAudioReset')?.addEventListener('click', () => { S.audioOverride.delete(d.url); renderPreview(d); $('pvAudioBtn')?.focus(); });
@@ -1000,24 +1046,24 @@ function renderSubsCell(d) {
   const avail = d.subs || [];
   if (!avail.length) {
     cell.innerHTML = d.auto_subs
-      ? '<span class="note">только автоматические · не скачиваются</span>'
-      : '<span class="dim">нет</span>';
+      ? `<span class="note">${esc(t('pv.subsAutoOnly'))}</span>`
+      : `<span class="dim">${esc(t('pv.none'))}</span>`;
     return;
   }
   const n = avail.length;
-  const cnt = `${n} ${plural(n, ['язык', 'языка', 'языков'])}`;
+  const cnt = t('pv.langs', { n });
   const chosen = subsChosen(d);
   let html;
   if (S.settings.subs === 'off') {
-    html = `<button class="mbtn" id="pvSubsBtn">${cnt}${CHEV_SM}</button><span class="note">не скачиваются</span>`;
+    html = `<button class="mbtn" id="pvSubsBtn">${cnt}${CHEV_SM}</button><span class="note">${esc(t('pv.notDownloaded'))}</span>`;
   } else if (chosen.length) {
-    const where = S.settings.subs === 'embed_srt' ? 'в видео и .srt' : 'в видео';
+    const where = S.settings.subs === 'embed_srt' ? t('pv.inVideoSrt') : t('pv.inVideo');
     html = `<b class="shrink" title="${esc(chosen.map(tName).join(', '))}">${esc(namesShort(chosen, 3))}</b>
       <span style="color:var(--text2);flex:none">${where}</span>
       <button class="mbtn plain" id="pvSubsBtn">${cnt}${CHEV_SM}</button>`;
   } else {
-    html = `<span class="val">нужного языка нет</span>
-      <button class="mbtn plain" id="pvSubsBtn">есть ${cnt}${CHEV_SM}</button>`;
+    html = `<span class="val">${esc(t('pv.noWanted'))}</span>
+      <button class="mbtn plain" id="pvSubsBtn">${esc(t('pv.have', { cnt }))}${CHEV_SM}</button>`;
   }
   cell.innerHTML = html;
   const btn = $('pvSubsBtn');
@@ -1058,21 +1104,21 @@ function showTrackMenu(anchor, d) {
   m.setAttribute('role', 'listbox');
   m.setAttribute('aria-multiselectable', 'true');
   const groups = [
-    ['Оригинал', tracks.filter(t => t.original)],
-    ['Дубляж', tracks.filter(t => !t.original && !t.auto)],
-    ['Автоперевод YouTube', tracks.filter(t => !t.original && t.auto)],
+    [t('tm.original'), tracks.filter(x => x.original)],
+    [t('tm.dub'), tracks.filter(x => !x.original && !x.auto)],
+    [t('tm.autodub'), tracks.filter(x => !x.original && x.auto)],
   ].filter(g => g[1].length);
   groups.forEach(g => g[1].sort((a, b) => tName(a.lang).localeCompare(tName(b.lang), 'ru')));
   m.innerHTML = `
-    <div class="mi" data-act="rule">${MENU_CK}<span>По настройке</span><span class="hn">${esc(namesShort(rule.map(t => t.lang), 3))}</span></div>
+    <div class="mi" data-act="rule">${MENU_CK}<span>${esc(t('tm.byRule'))}</span><span class="hn">${esc(namesShort(rule.map(x => x.lang), 3))}</span></div>
     <div class="msep"></div>
     <div class="list">${groups.map(([g, list]) => `
       <div class="gh"><span>${g}</span><span class="tab">${list.length > 1 ? list.length : ''}</span></div>
-      ${list.map(t => `<div class="mi" data-lang="${esc(t.lang)}" role="option">${MENU_CK}<span>${esc(tName(t.lang))}</span></div>`).join('')}`).join('')}
+      ${list.map(x => `<div class="mi" data-lang="${esc(x.lang)}" role="option">${MENU_CK}<span>${esc(tName(x.lang))}</span></div>`).join('')}`).join('')}
     </div>
     <div class="msep"></div>
-    <div class="mi" data-act="all">${MENU_CK}<span class="tab">Все дорожки (${n})</span><span class="hn">файл заметно больше</span></div>
-    <div class="foot">Отмеченные встроятся в файл отдельными дорожками</div>`;
+    <div class="mi" data-act="all">${MENU_CK}<span class="tab">${esc(t('tm.all', { n }))}</span><span class="hn">${esc(t('tm.allHint'))}</span></div>
+    <div class="foot">${esc(t('tm.foot'))}</div>`;
   placePopup(m, anchor, 300);
   const top = anchor.getBoundingClientRect().bottom + 4;
   const listMax = Math.max(120, Math.min(296, innerHeight - top - 8 - (32 * 2 + 9 * 2 + 30 + 8)));
@@ -1135,19 +1181,59 @@ function showSubsPop(anchor, d) {
   const chosen = subsChosen(d);
   const rule = optOf('subs_lang', S.settings.subs_lang).l;
   const foot = S.settings.subs === 'off'
-    ? 'Субтитры выключены в параметрах.'
+    ? t('sp.off')
     : chosen.length
-      ? `Встроятся: ${chosen.map(tName).join(', ').toLowerCase()}${S.settings.subs === 'embed_srt' ? ', и рядом файлом .srt' : ''}. Правило — в параметрах: «${rule}».`
-      : `Нужного языка нет. Правило — в параметрах: «${rule}».`;
+      ? t('sp.will', { list: chosen.map(tName).join(', '), srt: S.settings.subs === 'embed_srt' ? t('sp.willSrt') : '', rule })
+      : t('sp.missing', { rule });
   const m = document.createElement('div');
   m.className = 'spop';
   const sorted = avail.slice().sort((a, b) => tName(a).localeCompare(tName(b), 'ru'));
   m.innerHTML = `
-    <span style="color:var(--text3)">Официальные субтитры · ${avail.length}</span>
+    <span style="color:var(--text3)">${esc(t('sp.title', { n: avail.length }))}</span>
     <div class="sg">${sorted.map(k => `<div class="si${chosen.includes(k) ? ' on' : ''}" title="${esc(k)}">${MENU_CK}<span class="shrink">${esc(tName(k))}</span></div>`).join('')}</div>
     <div class="sf">${esc(foot)}</div>`;
   placePopup(m, anchor, 380);
   registerPopup(m, anchor);
+}
+
+// название языка на нём самом («Deutsch», «日本語») — из ui/locales/<код>.json
+const langNative = (code) => (LANGS.find(l => l.code === code) || {}).name || code;
+
+// ---- список языков интерфейса; смена языка перезагружает окно (ссылки сохраняются)
+function showLangMenu(anchor) {
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'amenu';
+  m.setAttribute('role', 'menu');
+  const opts = [{ code: 'auto', name: t('menu.langAuto', { name: langNative(SYS_LANG) }) }, ...LANGS];
+  m.innerHTML = `<div class="gh">${esc(t('menu.lang'))}</div>` + opts.map(o =>
+    `<div class="mi${S.settings.lang === o.code ? ' sel' : ''}" data-lang="${o.code}" role="menuitemradio" lang="${o.code === 'auto' ? LANG : o.code}">${MENU_CK}<span>${esc(o.name)}</span></div>`).join('');
+  document.body.appendChild(m);
+  const r = anchor.getBoundingClientRect();
+  m.style.left = Math.max(8, r.right - 232) + 'px';
+  m.style.top = (r.bottom + 4) + 'px';
+  m.style.maxHeight = (innerHeight - r.bottom - 12) + 'px';
+  m.style.overflowY = 'auto';
+  const items = [...m.querySelectorAll('.mi')];
+  let hl = Math.max(0, items.findIndex(x => x.classList.contains('sel')));
+  const setHl = (i) => { hl = i; items.forEach((x, k) => x.classList.toggle('hl', k === i)); items[i]?.scrollIntoView({ block: 'nearest' }); };
+  const act = async (x) => {
+    closeMenu();
+    if (x.dataset.lang === S.settings.lang) return;
+    S.settings.lang = x.dataset.lang;
+    await api.save_settings(S.settings);
+    try { sessionStorage.setItem('tp.urls', ta.value); } catch {}
+    location.reload();
+  };
+  items.forEach((x, i) => { x.addEventListener('mousemove', () => setHl(i)); x.addEventListener('click', () => act(x)); });
+  setHl(hl);
+  registerPopup(m, anchor, (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHl(Math.min(items.length - 1, hl + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHl(Math.max(0, hl - 1)); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(items[hl]); }
+    else if (e.key === 'Tab') closeMenu();
+    e.stopPropagation();
+  });
 }
 
 // ---- меню приложения (⋯): настройки самой программы, отдельно от параметров файла
@@ -1157,12 +1243,15 @@ function showAppMenu(anchor) {
   m.className = 'amenu';
   m.setAttribute('role', 'menu');
   const v = S.appInfo ? S.appInfo.version + (S.appInfo.portable ? ' portable' : '') : '';
+  const curLang = S.settings.lang === 'auto' ? t('menu.langAuto', { name: langNative(SYS_LANG) }) : langNative(S.settings.lang);
   m.innerHTML = `
-    <div class="gh">Тема</div>
-    ${OPTS.theme.map(o => `<div class="mi${S.settings.theme === o.v ? ' sel' : ''}" data-theme="${o.v}" role="menuitemradio">${MENU_CK}<span>${o.l}</span></div>`).join('')}
+    <div class="gh">${esc(t('menu.theme'))}</div>
+    ${OPTS.theme.map(o => `<div class="mi${S.settings.theme === o.v ? ' sel' : ''}" data-theme="${o.v}" role="menuitemradio">${MENU_CK}<span>${esc(o.l)}</span></div>`).join('')}
     <div class="msep"></div>
-    <div class="mi" data-act="data" role="menuitem"><span class="ck"></span><span>Папка настроек</span></div>
-    <div class="mi" data-act="about" role="menuitem"><span class="ck"></span><span>О программе</span><span class="hn tab">${esc(v)}</span></div>`;
+    <div class="mi${S.running ? ' dis' : ''}" data-act="lang" role="menuitem"><span class="ck"></span><span>${esc(t('menu.lang'))}</span><span class="hn">${esc(curLang)} ›</span></div>
+    <div class="msep"></div>
+    <div class="mi" data-act="data" role="menuitem"><span class="ck"></span><span>${esc(t('menu.data'))}</span></div>
+    <div class="mi" data-act="about" role="menuitem"><span class="ck"></span><span>${esc(t('menu.about'))}</span><span class="hn tab">${esc(v)}</span></div>`;
   document.body.appendChild(m);
   const r = anchor.getBoundingClientRect();
   m.style.left = Math.max(8, r.right - 232) + 'px';
@@ -1172,6 +1261,7 @@ function showAppMenu(anchor) {
   const setHl = (i) => { hl = i; items.forEach((x, k) => x.classList.toggle('hl', k === i)); };
   const act = (x) => {
     if (x.dataset.theme) { S.settings.theme = x.dataset.theme; onSettingsChanged(); }
+    else if (x.dataset.act === 'lang') { if (S.running) return; closeMenu(); showLangMenu(anchor); return; }
     else if (x.dataset.act === 'data') api.open_data_dir();
     else if (x.dataset.act === 'about') { setLogOpen(true); appendLog(`To Picture ${v} · ${S.versions || ''}`, 'c'); }
     closeMenu(); anchor.focus();
@@ -1191,11 +1281,11 @@ function showAppMenu(anchor) {
 // шаги загрузки идут в том порядке, в каком их делает yt-dlp: сначала субтитры, потом видео и звук
 function dlSteps(r) {
   const list = [];
-  if (S.settingsAtRun && S.settingsAtRun.subs !== 'off') list.push(['subs', 'субтитры']);
-  list.push(['video', 'видео']);
+  if (r.has_subs) list.push(['subs', t('step.subs')]);
+  list.push(['video', t('step.video')]);
   const an = r.audio_n || 1;
-  list.push(['audio', an > 1 ? (r.step === 'audio' ? `аудио ${r.audio_i || 1} из ${an}` : `аудио ×${an}`) : 'аудио']);
-  list.push(['merge', 'объединение']);
+  list.push(['audio', an > 1 ? (r.step === 'audio' ? t('step.audioOf', { i: r.audio_i || 1, n: an }) : t('step.audioX', { n: an })) : t('step.audio')]);
+  list.push(['merge', t('step.merge')]);
   return list;
 }
 function rowHtml(r) {
@@ -1231,14 +1321,14 @@ function updateTitle() {
   if (!S.running) return setTitle('');
   const act = S.tc.state === 'active' ? S.tc : S.dl.state === 'active' ? S.dl : null;
   if (!act) return setTitle('');
-  setTitle(`${Math.floor(act.pct || 0)}${NB}% · ${act === S.dl ? 'Скачивание' : act.label}`);
+  setTitle(`${Math.floor(act.pct || 0)}${NB}% · ${act.label}`);
 }
 function nextLabel() {
   const i = S.cur + 1;
   if (i >= S.total) return '';
   const u = S.runUrls[i];
   const c = S.preview.resolved?.get(u);
-  return 'далее: ' + (c && c.ok ? c.title : u);
+  return t('q.next', { name: c && c.ok ? c.title : u });
 }
 
 // ---------------------------------------------------------------- run
@@ -1284,14 +1374,14 @@ const handlers = {
     S.cur = ev.index;
     S.lineState[ev.index] = 'active';
     renderGutter(); renderUrlList();
-    S.dl = { label: 'Скачивание', state: 'active', pct: 0, step: 'video', l: 'подключение…', r: '' };
-    S.tc = { label: 'Транскодирование', state: 'pending', l: 'ожидает · ' + codecDesc(), r: '' };
+    S.dl = { label: t('prog.download'), state: 'active', pct: 0, step: 'video', l: t('prog.connecting'), r: '' };
+    S.tc = { label: t('prog.transcode'), state: 'pending', l: t('prog.waiting', { desc: codecDesc() }), r: '' };
     // если по превью уже понятно, что YouTube отдаёт H.264, — честно пишем «перепаковка»
     const pd = S.preview.resolved?.get(S.runUrls[ev.index]);
-    if (pd && pd.ok && selectVideo(pd).copy) S.tc = { label: 'Перепаковка', copy: true, state: 'pending', l: 'ожидает · без перекодирования', r: '' };
+    if (pd && pd.ok && selectVideo(pd).copy) S.tc = { label: t('prog.remux'), copy: true, state: 'pending', l: t('prog.waiting', { desc: t('desc.noReencode') }), r: '' };
     S.rowsShown = false; S.gotProgress = false;
     renderRows();
-    $('qLabel').textContent = `Видео ${ev.index + 1} из ${ev.total}`;
+    $('qLabel').textContent = t('q.videoOf', { i: ev.index + 1, n: ev.total });
     $('qNext').textContent = nextLabel();
     $('qNext').title = $('qNext').textContent;
     showPreviewFor(S.runUrls[ev.index]);
@@ -1305,42 +1395,45 @@ const handlers = {
       r.step = ev.step;
       if (ev.audio_n) { r.audio_n = ev.audio_n; r.audio_i = ev.audio_i; }
       if (ev.note) { r.l = ev.note; r.r = ''; if (ev.pct != null) r.pct = ev.pct; }
-      else if (ev.step === 'merge') { r.pct = 100; r.l = 'объединение видео, звука и субтитров…'; r.r = ''; }
+      else if (ev.step === 'merge') { r.pct = 100; r.l = t('prog.merging'); r.r = ''; }
       else {
         if (ev.pct != null) r.pct = ev.pct;
         const parts = [];
         if (ev.total) parts.push(fmtPair(ev.done || 0, ev.total));
-        if (ev.speed) parts.push(fmtSize(ev.speed) + '/с');
+        if (ev.speed) parts.push(fmtSpeed(ev.speed));
         r.l = parts.join(' · ') || r.l;
-        r.r = ev.eta != null ? 'осталось ' + fmtTime(ev.eta) : '';
+        r.r = ev.eta != null ? t('prog.left', { t: fmtTime(ev.eta) }) : '';
       }
     } else {
       const r = S.tc;
       r.state = 'active';
       r.pct = ev.pct;
       const parts = [];
-      if (ev.frames) parts.push(`кадр ${groupNum(ev.frame)} из ${groupNum(ev.frames)}`);
-      else if (ev.frame) parts.push(`кадр ${groupNum(ev.frame)}`);
-      if (ev.speed) parts.push(dec(ev.speed, 1) + '×');
+      if (ev.frames) parts.push(t('prog.frameOf', { a: groupNum(ev.frame), b: groupNum(ev.frames) }));
+      else if (ev.frame) parts.push(t('prog.frame', { a: groupNum(ev.frame) }));
+      if (ev.speed) parts.push(fmtDec1(ev.speed) + '×');
       r.l = parts.join(' · ');
-      r.r = ev.eta != null ? 'осталось ' + fmtTime(ev.eta) : '';
+      r.r = ev.eta != null ? t('prog.left', { t: fmtTime(ev.eta) }) : '';
     }
     renderRows(); updateTitle();
   },
   stage_done(ev) {
     S.rowsShown = true;
     if (ev.stage === 'download') {
-      S.dl = { label: 'Скачивание', state: 'done', step: 'merge', audio_n: S.dl.audio_n, l: fmtSize(ev.size) + (ev.merged ? ' · видео и звук объединены' : ''), r: fmtTime(ev.elapsed) };
-      if (S.settingsAtRun.codec !== 'copy') S.tc = { label: 'Транскодирование', state: 'active', pct: 0, l: 'запуск ffmpeg…', r: '' };
+      S.dl = { label: t('prog.download'), state: 'done', step: 'merge', audio_n: S.dl.audio_n, has_subs: S.dl.has_subs, l: fmtSize(ev.size) + (ev.merged ? t('prog.merged') : ''), r: fmtTime(ev.elapsed) };
+      if (S.settingsAtRun.codec !== 'copy') S.tc = { label: S.tc.copy ? t('prog.remux') : t('prog.transcode'), copy: S.tc.copy, state: 'active', pct: 0, l: t('prog.ffmpegStart'), r: '' };
     } else {
       const copy = S.tc.copy;
-      S.tc = { label: copy ? 'Перепаковка' : 'Транскодирование', state: 'done', copy,
-               l: fmtSize(ev.size) + ' · ' + (copy ? 'H.264 от YouTube, без перекодирования' : codecDesc()), r: fmtTime(ev.elapsed) };
+      S.tc = { label: copy ? t('prog.remux') : t('prog.transcode'), state: 'done', copy,
+               l: fmtSize(ev.size) + ' · ' + (copy ? t('prog.remuxDone') : codecDesc()), r: fmtTime(ev.elapsed) };
     }
     renderRows(); updateTitle();
   },
   tc_mode(ev) {
-    if (ev.copy) { S.tc = { ...S.tc, label: 'Перепаковка', copy: true, l: 'видео уже H.264 — перекодирование не нужно' }; renderRows(); }
+    if (ev.copy) { S.tc = { ...S.tc, label: t('prog.remux'), copy: true, l: t('prog.remuxNote') }; renderRows(); }
+  },
+  plan(ev) {
+    S.dl.has_subs = ev.subs; S.dl.audio_n = ev.audio_n; renderRows();
   },
   item_done(ev) {
     S.lineState[ev.index] = 'done';
@@ -1353,7 +1446,7 @@ const handlers = {
     const failing = S.tc.state === 'active' ? S.tc : S.dl;
     failing.state = 'error'; failing.l = ev.message; failing.r = '';
     renderRows();
-    $('errT').textContent = `${S.tc === failing ? 'Транскодирование' : 'Скачивание'} прервано · видео ${ev.index + 1} из ${ev.total}`;
+    $('errT').textContent = t('err.interrupted', { stage: failing.label, i: ev.index + 1, n: ev.total });
     $('errM').textContent = ev.message;
     $('errBox').classList.remove('hidden');
     setLogOpen(true);
@@ -1362,21 +1455,21 @@ const handlers = {
     S.lineState[ev.index] = 'pending';
     renderGutter(); renderUrlList();
     const r = S.tc.state === 'active' ? S.tc : S.dl;
-    r.state = 'error'; r.l = 'отменено, временные файлы удалены'; r.r = '';
+    r.state = 'error'; r.l = t('prog.cancelled'); r.r = '';
     renderRows();
   },
   finished(ev) {
     S.running = false; S.cancelling = false;
     lockSettings(false);
     if (ev.cancelled) {
-      $('qLabel').textContent = 'Отменено';
-      $('qNext').textContent = ev.saved ? `сохранено ${ev.saved} ${plural(ev.saved, ['файл', 'файла', 'файлов'])}` : '';
+      $('qLabel').textContent = t('q.cancelled');
+      $('qNext').textContent = ev.saved ? t('q.saved', { n: ev.saved }) : '';
     } else {
-      $('qLabel').textContent = `Видео ${ev.total} из ${ev.total} · ${ev.failed ? 'с ошибками' : 'готово'}`;
-      const parts = [`сохранено ${ev.saved} ${plural(ev.saved, ['файл', 'файла', 'файлов'])}`];
+      $('qLabel').textContent = t(ev.failed ? 'q.withErrors' : 'q.done', { n: ev.total });
+      const parts = [t('q.saved', { n: ev.saved })];
       if (ev.bytes) parts.push(fmtSize(ev.bytes));
       parts.push(fmtTime(ev.elapsed));
-      if (ev.failed) parts.push(`ошибок: ${ev.failed}`);
+      if (ev.failed) parts.push(t('q.errors', { n: ev.failed }));
       $('qNext').textContent = parts.join(' · ');
     }
     if (S.lastFile) {
@@ -1391,7 +1484,7 @@ const handlers = {
         $('resSrtName').title = srt.join('\n');
       }
     }
-    appendLog(ev.cancelled ? 'отменено' : `готово · ${ev.saved} из ${ev.total}` + (ev.failed ? ` · ошибок: ${ev.failed}` : ' без ошибок'), ev.failed ? 'e' : 'n');
+    appendLog(ev.cancelled ? t('log.cancelled') : t('log.done', { a: ev.saved, b: ev.total }) + (ev.failed ? t('log.errors', { n: ev.failed }) : t('log.noErrors')), ev.failed ? 'e' : 'n');
     setTitle('');
     updateButtons();
     S.preview.shownUrl = null;
@@ -1433,11 +1526,11 @@ new MutationObserver(() => requestAnimationFrame(fitHeight)).observe($('content'
 function updateButtons() {
   const main = $('bMain');
   if (S.running) {
-    main.textContent = 'Отмена';
+    main.textContent = t('btn.cancel');
     main.classList.add('cancel');
     main.disabled = S.cancelling;
   } else {
-    main.textContent = 'Скачать';
+    main.textContent = t('btn.download');
     main.classList.remove('cancel');
     main.disabled = !(S.listMode ? S.runUrls.length : validUrls().length) || S.missing.length > 0;
   }
@@ -1446,10 +1539,10 @@ function updateButtons() {
   $('bPaste').disabled = S.running;
   const hint = $('hint');
   hint.classList.toggle('err', S.missing.length > 0);
-  if (S.missing.length) hint.textContent = 'Не найдено в PATH: ' + S.missing.join(', ');
+  if (S.missing.length) hint.textContent = t('hint.missing', { list: S.missing.join(', ') });
   else if (S.running) hint.textContent = '';
-  else if (!ta.value.trim() && !S.listMode) hint.textContent = 'Ctrl+Enter — скачать · Ctrl+V — вставить ссылку';
-  else hint.textContent = 'Ctrl+Enter — скачать';
+  else if (!ta.value.trim() && !S.listMode) hint.textContent = t('hint.keysEmpty');
+  else hint.textContent = t('hint.keys');
 }
 
 // ---------------------------------------------------------------- wiring
@@ -1480,8 +1573,8 @@ function wire() {
   $('bCopyLog').addEventListener('click', () => {
     const text = [...$('logBox').children].map(d => d.textContent).join('\r\n');
     api.set_clipboard(text);
-    const b = $('bCopyLog'); b.textContent = 'Скопировано';
-    setTimeout(() => b.textContent = 'Копировать', 1200);
+    const b = $('bCopyLog'); b.textContent = t('log.copied');
+    setTimeout(() => b.textContent = t('log.copy'), 1200);
   });
 
   const crf = $('crf');
@@ -1539,7 +1632,19 @@ async function boot() {
   api.app_info().then(x => S.appInfo = x).catch(() => {});
   S.settings = init.settings;
   S.missing = init.missing || [];
+  // язык: строки текущего языка + английские как запасные
+  LANG = init.lang || 'en'; L = init.strings || {}; LF = init.fallback || {};
+  LANGS = init.langs || []; SYS_LANG = init.system_lang || LANG;
+  PR = new Intl.PluralRules(LANG);
+  normalizeForLang(S.settings);
+  buildOpts();
+  applyStatic();
   wire();
+  // после смены языка окно перезагружается — возвращаем список ссылок
+  try {
+    const saved = sessionStorage.getItem('tp.urls');
+    if (saved) { sessionStorage.removeItem('tp.urls'); ta.value = saved; onListChanged(); }
+  } catch {}
   api.versions().then(v => {
     // поиск видеокарты стартует вместе с проверкой версий — спрашиваем после
     api.gpu_info().then(g => {

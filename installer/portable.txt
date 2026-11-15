@@ -1,4 +1,24 @@
-To Picture — портативная версия.
+To Picture — portable version
+==============================
+
+While this file sits next to "To Picture.exe", the app runs in portable mode:
+settings and service files are kept in the "data" folder next to it, and nothing is
+written to the system (AppData, registry). The folder can be moved to a USB stick
+or another computer.
+
+yt-dlp and ffmpeg are in the "bin" folder. yt-dlp updates itself once a day, so the
+folder must be writable.
+
+Requires Windows 10/11 x64 with Microsoft WebView2 (built into Windows 11; for
+Windows 10: https://developer.microsoft.com/microsoft-edge/webview2/).
+
+To uninstall, just delete the folder.
+
+https://github.com/DablyaOfficial/to-picture
+
+
+To Picture — портативная версия
+================================
 
 Пока этот файл лежит рядом с "To Picture.exe", программа работает в портативном режиме:
 настройки и служебные файлы хранятся в папке "data" рядом с программой, в системе
