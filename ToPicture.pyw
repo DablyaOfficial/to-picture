@@ -23,7 +23,7 @@ from pathlib import Path
 import webview
 
 APP = "To Picture"
-APP_VERSION = "1.6.0"
+APP_VERSION = "1.6.1"
 FROZEN = getattr(sys, "frozen", False)
 # в собранном exe файлы интерфейса лежат во временной папке PyInstaller (sys._MEIPASS)
 HERE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
