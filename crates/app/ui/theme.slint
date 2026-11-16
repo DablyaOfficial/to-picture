@@ -1,0 +1,49 @@
+// To Picture — цвета и шрифты (как переменные CSS в ui/index.html).
+
+export global T {
+    in property <bool> dark;
+    out property <color> bg: dark ? #1E1E1D : #F3F3F1;
+    out property <color> surface: dark ? #262625 : #FFFFFF;
+    out property <color> raised: dark ? #2C2C2B : #FBFBFA;
+    out property <color> sunken: dark ? #181817 : #E9E9E6;
+    out property <color> line: dark ? #333331 : #E0E0DC;
+    out property <color> line-strong: dark ? #474745 : #C9C9C4;
+    out property <color> hover: dark ? #343432 : #EAEAE7;
+    out property <color> pressed: dark ? #2A2A29 : #E1E1DD;
+    out property <color> text: dark ? #ECECEA : #1C1C1A;
+    out property <color> text2: dark ? #A6A6A2 : #5C5C58;
+    out property <color> text3: dark ? #7A7A76 : #868681;
+    out property <color> track: dark ? #363634 : #E0E0DC;
+    out property <color> done: dark ? #6A6A66 : #9A9A95;
+    out property <color> accent: dark ? #E8894F : #B4501E;
+    out property <color> accent-hover: dark ? #F09A63 : #A04419;
+    out property <color> accent-pressed: dark ? #D67A42 : #8C3A15;
+    out property <color> on-accent: dark ? #161615 : #FFFFFF;
+    out property <color> err: dark ? #F08A80 : #B3261E;
+    out property <color> focus: dark ? #ECECEA : #1C1C1A;
+    out property <color> ok: #3A8A3F;
+    in property <string> sans: "Segoe UI Variable Text";
+    in property <string> mono: "Cascadia Mono";
+}
+
+// Размер окна — для меню, которые открываются вверх, если снизу мало места.
+export global Win {
+    in-out property <length> w: 820px;
+    in-out property <length> h: 760px;
+}
+
+// Всплывающая подсказка (title в HTML): одна на окно, рисуется поверх всего.
+export global Tip {
+    in-out property <string> text;
+    in-out property <length> x;
+    in-out property <length> y;
+    in-out property <bool> show;
+    in-out property <int> owner;
+    in-out property <int> next-id: 1;
+}
+
+// Ширина строки, измеренная в Rust по шрифту Segoe UI: (текст, размер, насыщенность).
+// Нужна кнопкам: их ширина должна пересчитываться при смене языка.
+export global Measure {
+    pure callback text-w(string, length, int) -> length;
+}

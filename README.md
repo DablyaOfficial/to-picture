@@ -37,7 +37,7 @@
 
 **Portable:** unzip [`ToPicture-Portable.zip`](https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Portable.zip) anywhere and run `To Picture.exe`. Settings stay next to it in the `data` folder, so it works from a USB stick.
 
-yt-dlp and ffmpeg are included — nothing else to install. Windows 10 or 11, 64-bit. The WebView2 window engine is built into Windows 11; on Windows 10 the installer downloads it if needed.
+yt-dlp and ffmpeg are included — nothing else to install. Windows 10 or 11, 64-bit.
 
 **Languages:** English, 简体中文, Español, Português (Brasil), Deutsch, Français, 日本語, 한국어, Türkçe, Русский. The app follows your Windows language; change it in the **⋯** menu.
 
@@ -87,15 +87,16 @@ Usually YouTube changed something and yt-dlp needs an update. The app updates it
 
 ## Build from source
 
-You'll need Python 3.12+, [Inno Setup 6/7](https://jrsoftware.org/isdl.php), plus `yt-dlp.exe` and ffmpeg ([yt-dlp build](https://github.com/yt-dlp/FFmpeg-Builds/releases), `win64-gpl-shared`) in `installer/payload/bin`.
+You'll need [Rust](https://rustup.rs) with Visual Studio C++ Build Tools, [Inno Setup 6/7](https://jrsoftware.org/isdl.php), plus `yt-dlp.exe` and ffmpeg ([yt-dlp build](https://github.com/yt-dlp/FFmpeg-Builds/releases), `win64-gpl-shared`) in `installer/payload/bin`.
 
 ```bat
-pip install -r requirements.txt
-python ToPicture.pyw       :: run from source
-build_installer.bat        :: exe, installer and portable zip in installer\output
+cargo run -p topicture      :: run from source
+build_installer.bat         :: exe, installer and portable zip in installer\output
 ```
 
-UI — [`ui/index.html`](ui/index.html) (HTML/CSS in a [pywebview](https://github.com/r0x0r/pywebview) window), translations — [`ui/locales/`](ui/locales), logic — [`ToPicture.pyw`](ToPicture.pyw), installer — [`installer/ToPicture.iss`](installer/ToPicture.iss).
+Written in Rust. Window — [`crates/app`](crates/app) (native UI on [Slint](https://slint.dev), no WebView), engine — [`crates/core`](crates/core), browser extension link — [`crates/bridge`](crates/bridge), translations — [`ui/locales/`](ui/locales), installer — [`installer/ToPicture.iss`](installer/ToPicture.iss).
+
+[![Made with Slint](https://raw.githubusercontent.com/slint-ui/slint/master/logo/MadeWithSlint-logo-whitebg.png)](https://slint.dev)
 
 **Translations:** each language is one JSON file in `ui/locales/` (`en.json` is the reference). To add a language, copy `en.json`, translate the values and open a pull request.
 

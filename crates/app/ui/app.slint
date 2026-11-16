@@ -1,0 +1,2257 @@
+// To Picture — главное окно. Повторяет разметку и стили ui/index.html (Python-версия на WebView2).
+// Вся логика — в Rust (src/app.rs): он считает подписи, видимость строк и раскладку сетки параметров,
+// здесь только вёрстка и передача действий наружу через глобальный S.
+import { T, Win, Tip, Measure } from "theme.slint";
+import { Opt, SelData, TipArea, Chevron, Check, Btn, TBtn, MBtn, Field, MenuRow, MenuSep, MenuBox, Select, TField } from "widgets.slint";
+import { ScrollView, Palette } from "std-widgets.slint";
+
+export { T, Win, Tip, Measure, Opt, SelData }
+
+// ячейка сетки параметров: строка, колонка, сколько колонок занимает
+export struct Cell { show: bool, row: int, col: int, span: int }
+// номер строки в поле ссылок и отметка: 0 — нет, 1 — идёт, 2 — готово, 3 — ошибка
+export struct GLine { n: int, mark: int }
+export struct ULine { text: string, done: bool, tip: string }
+// пункт меню: kind 0 — пункт, 1 — заголовок группы, 2 — разделитель, 3 — видео плейлиста
+export struct MItem { kind: int, id: string, label: string, hint: string, num: string, sel: bool, dis: bool, tip: string, font: string }
+export struct Step { text: string, cls: int }
+// state: 0 — ждёт, 1 — идёт, 2 — готово, 3 — ошибка
+export struct PRow { label: string, num: string, check: bool, steps: [Step], pct-text: string, pct: float, state: int, l: string, r: string, r-tip: string }
+export struct LogLine { text: string, level: int }
+export struct SubItem { name: string, on: bool, tip: string }
+// карточка превью; state: 0 — пусто, 1 — загрузка, 2 — ошибка, 3 — видео, 4 — плейлист
+export struct Pv {
+    state: int, thumb: image, has-thumb: bool, msg: string, chip: string,
+    title: string, byline: string, err: string, url: string,
+    src: string, out: string, out-tip: string, trim: string, trim-on: bool,
+    akind: int, atext: string, alabel: string, aov: bool, anote: string, atip: string,
+    skind: int, sa: string, sb: string, sbtn: string, stip: string,
+    pl-label: string, pl-folder: string, pl-files: string, pl-audio: string, pl-note: string,
+    kw: length,
+}
+
+export global S {
+    // ---- перевод
+    in property <string> lang;
+    pure callback tr(string, string) -> string;
+    public pure function t(k: string) -> string {
+        return tr(k, lang);
+    }
+    in property <string> title: "To Picture";
+    in property <bool> running;
+    in property <bool> locked;
+
+    // ---- ссылки
+    in-out property <string> urls;
+    callback urls-edited(string);
+    in property <bool> list-mode;
+    in property <[GLine]> gutter;
+    in property <[ULine]> url-list;
+    in property <bool> paste-dis;
+    in property <bool> clear-dis;
+    callback edit-list();
+    callback paste();
+    callback clear();
+
+    // ---- меню приложения и языков
+    in property <[MItem]> app-items;
+    in property <[MItem]> lang-items;
+    callback app-act(string) -> string;
+    callback lang-act(string);
+
+    // ---- параметры
+    in property <SelData> sel-codec;
+    in property <SelData> sel-max-height;
+    in property <SelData> sel-preset;
+    in property <SelData> sel-audio;
+    in property <SelData> sel-encoder;
+    in property <SelData> sel-audio-lang;
+    in property <SelData> sel-subs;
+    in property <SelData> sel-subs-lang;
+    in property <SelData> sel-name-tpl;
+    in property <SelData> sel-parallel;
+    in property <SelData> sel-sponsorblock;
+    in property <SelData> sel-cookies;
+    in property <SelData> sel-rate-limit;
+    callback select(string, string);
+    in property <[Cell]> cells;
+    in property <bool> narrow-grid;
+    in property <length> grid-l0: 88px;
+    in property <length> grid-l2: 88px;
+    in property <int> crf: 16;
+    in property <string> crf-word;
+    callback crf-set(int);
+    in property <string> out-dir;
+    in property <string> out-dir-tip;
+    in property <string> cookies-file;
+    in property <string> cookies-file-tip;
+    in property <bool> cookies-file-empty;
+    callback browse();
+    callback browse-cookies();
+    in property <string> enc-hint;
+    in property <string> ck-hint;
+    in-out property <string> proxy;
+    callback proxy-edited(string);
+    callback proxy-done();
+    in property <string> set-sum;
+    in property <bool> set-open;
+    callback toggle-settings(bool);
+    // ширина полей с путями: Rust обрезает середину пути под неё
+    callback fit(string, length);
+
+    // ---- превью
+    in property <Pv> pv;
+    in property <[MItem]> track-head;
+    in property <[MItem]> track-items;
+    in property <[MItem]> track-tail;
+    callback track-open();
+    callback track-click(string) -> bool;
+    callback audio-reset();
+    in property <[MItem]> pl-head;
+    in property <[MItem]> pl-items;
+    callback pl-open();
+    callback pl-click(string);
+    in property <[SubItem]> subs-items;
+    in property <string> subs-title;
+    in property <string> subs-foot;
+    callback subs-open();
+    in-out property <string> tr-start;
+    in-out property <string> tr-end;
+    in property <string> tr-ph;
+    in property <string> tr-msg;
+    in property <bool> tr-err;
+    in property <bool> tr-has;
+    callback trim-open();
+    callback trim-apply(string, string) -> bool;
+    callback trim-all();
+
+    // ---- прогресс
+    in property <bool> prog-show;
+    in property <string> q-label;
+    in property <string> q-next;
+    in property <bool> rows-show;
+    in property <[PRow]> rows;
+    in property <bool> res-show;
+    in property <string> res-path;
+    in property <string> res-tip;
+    in property <string> res-size;
+    in property <bool> srt-show;
+    in property <string> srt-name;
+    in property <string> srt-tip;
+    in property <bool> err-show;
+    in property <string> err-t;
+    in property <string> err-m;
+
+    // ---- журнал
+    in property <bool> log-open;
+    in property <string> log-sum;
+    in property <[LogLine]> lines;
+    in property <string> copy-label;
+    in property <int> log-rev;
+    callback toggle-log(bool);
+    callback copy-log();
+
+    // ---- низ окна
+    in property <string> hint;
+    in property <bool> hint-err;
+    in property <bool> folder-dis: true;
+    in property <bool> pause-show;
+    in property <string> pause-text;
+    in property <bool> pause-dis;
+    in property <string> main-text;
+    in property <bool> main-cancel;
+    in property <bool> main-dis: true;
+    callback main();
+    callback pause();
+    callback folder();
+
+    // ---- расширение
+    in property <bool> ext-show;
+    in property <bool> ext-ok;
+    in property <string> ext-b;
+    in property <string> ext-span;
+    in property <bool> ext-connect-show;
+    in property <string> ext-path;
+    in property <string> ext-path-tip;
+    in property <string> copied;
+    callback ext-close();
+    callback ext-connect();
+    callback ext-copy(string);
+    callback ext-open();
+
+    // ---- клавиши
+    callback key-start();
+    callback key-pause();
+    callback key-paste();
+    callback copy-result();
+    callback theme-changed(bool);
+}
+
+component Lab inherits Text {
+    color: T.text2;
+    vertical-alignment: center;
+    min-width: max(88px, self.preferred-width);
+}
+
+component Hint2 inherits Text {
+    font-size: 12px;
+    color: T.text3;
+    wrap: word-wrap;
+    vertical-alignment: center;
+    min-width: 0px;
+    preferred-width: 0px;
+}
+
+component Spinner inherits Rectangle {
+    width: 20px;
+    height: 20px;
+    property <angle> a: mod(animation-tick(), 900ms) / 900ms * 360deg;
+    Path {
+        width: 20px;
+        height: 20px;
+        viewbox-width: 20;
+        viewbox-height: 20;
+        commands: "M10 2 A8 8 0 1 1 9.99 2";
+        stroke: T.line-strong;
+        stroke-width: 2px;
+        fill: transparent;
+    }
+    Path {
+        width: 20px;
+        height: 20px;
+        viewbox-width: 20;
+        viewbox-height: 20;
+        commands: "M " + (10 + 8 * cos(root.a)) + " " + (10 + 8 * sin(root.a)) + " A8 8 0 0 1 " + (10 + 8 * cos(root.a + 90deg)) + " " + (10 + 8 * sin(root.a + 90deg));
+        stroke: T.text2;
+        stroke-width: 2px;
+        stroke-line-cap: round;
+        fill: transparent;
+    }
+}
+
+component ErrIcon inherits Rectangle {
+    in property <color> icon-color: T.text3;
+    in property <length> size: 20px;
+    width: size;
+    height: size;
+    Rectangle {
+        x: size * 0.075;
+        y: size * 0.075;
+        width: size * 0.85;
+        height: size * 0.85;
+        border-radius: self.width / 2;
+        border-width: 1.4px;
+        border-color: root.icon-color;
+    }
+    Rectangle {
+        x: size / 2 - 0.8px;
+        y: size * 0.275;
+        width: 1.6px;
+        height: size * 0.275;
+        background: root.icon-color;
+    }
+    Rectangle {
+        x: size / 2 - 1.1px;
+        y: size * 0.7 - 1.1px;
+        width: 2.2px;
+        height: 2.2px;
+        border-radius: 1.1px;
+        background: root.icon-color;
+    }
+}
+
+component Dot inherits Rectangle {
+    in property <color> dot-color;
+    width: 6px;
+    height: 6px;
+    border-radius: 3px;
+    background: root.dot-color;
+}
+
+// Заголовок сворачиваемого раздела (.chead)
+component CHead inherits Rectangle {
+    in property <string> title;
+    in property <string> sum;
+    in property <bool> open;
+    in property <string> sum-font: T.sans;
+    in property <length> sum-size: 12px;
+    in property <color> sum-color: T.text2;
+    callback toggled(bool);
+    height: 36px;
+    border-radius: 4px;
+    HorizontalLayout {
+        spacing: 8px;
+        Chevron {
+            down: root.open;
+            fg: ta.has-hover ? T.text : T.text2;
+        }
+        Text {
+            text: root.title;
+            font-weight: 600;
+            vertical-alignment: center;
+            horizontal-stretch: 0;
+        }
+        Text {
+            text: root.open ? "" : root.sum;
+            font-size: root.sum-size;
+            font-family: root.sum-font;
+            color: root.sum-color;
+            vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+            min-width: 0px;
+        }
+    }
+    ta := TipArea {
+        tip: root.open ? "" : root.sum;
+        clicked => { root.toggled(!root.open); }
+    }
+    FocusScope {
+        key-pressed(e) => {
+            if e.text == Key.LeftArrow { root.toggled(false); return accept; }
+            if e.text == Key.RightArrow { root.toggled(true); return accept; }
+            reject
+        }
+    }
+}
+
+// Ползунок CRF
+component CrfSlider inherits Rectangle {
+    in property <int> value;
+    in property <bool> enabled: true;
+    callback changed-value(int);
+    width: 220px;
+    height: 20px;
+    property <float> f: (value - 10) / 20;
+    Rectangle {
+        y: (parent.height - 2px) / 2;
+        height: 2px;
+        border-radius: 1px;
+        background: T.track;
+    }
+    Rectangle {
+        x: 0px;
+        y: (parent.height - 2px) / 2;
+        width: 7px + (parent.width - 14px) * root.f;
+        height: 2px;
+        border-radius: 1px;
+        background: T.text2;
+    }
+    Rectangle {
+        x: (parent.width - 14px) * root.f;
+        y: 3px;
+        width: 14px;
+        height: 14px;
+        border-radius: 7px;
+        background: root.enabled ? T.surface : T.sunken;
+        border-width: 1px;
+        border-color: !root.enabled ? T.line : ta.has-hover || fs.has-focus ? T.text3 : T.line-strong;
+        Rectangle {
+            width: ta.pressed ? 8px : 6px;
+            height: self.width;
+            border-radius: self.width / 2;
+            background: root.enabled ? T.text : T.text3;
+        }
+    }
+    function at(x: length) {
+        let v = round(10 + clamp((x - 7px) / (root.width - 14px), 0, 1) * 20);
+        if v != root.value {
+            root.changed-value(v);
+        }
+    }
+    ta := TouchArea {
+        enabled: root.enabled;
+        pointer-event(e) => {
+            if e.kind == PointerEventKind.down {
+                fs.focus();
+                root.at(self.mouse-x);
+            }
+        }
+        moved => {
+            if self.pressed {
+                root.at(self.mouse-x);
+            }
+        }
+    }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == Key.RightArrow || e.text == Key.UpArrow { root.changed-value(min(30, root.value + 1)); return accept; }
+            if e.text == Key.LeftArrow || e.text == Key.DownArrow { root.changed-value(max(10, root.value - 1)); return accept; }
+            if e.text == Key.PageUp { root.changed-value(min(30, root.value + 5)); return accept; }
+            if e.text == Key.PageDown { root.changed-value(max(10, root.value - 5)); return accept; }
+            if e.text == Key.Home { root.changed-value(10); return accept; }
+            if e.text == Key.End { root.changed-value(30); return accept; }
+            reject
+        }
+    }
+}
+
+// одна строка меню любого вида
+component MRowAny inherits Rectangle {
+    in property <MItem> m;
+    in property <bool> hl;
+    in property <length> gh-pad: 28px;
+    callback clicked();
+    callback hovered();
+    height: m.kind == 2 ? 9px : m.kind == 1 ? 28px : 32px;
+    min-width: m.kind == 0 ? mr.min-width : 0px;
+    if m.kind == 2: MenuSep {
+        width: parent.width;
+    }
+    if m.kind == 1: HorizontalLayout {
+        padding-left: root.gh-pad;
+        padding-right: 8px;
+        padding-bottom: 4px;
+        spacing: 6px;
+        Text {
+            text: root.m.label;
+            font-size: 12px;
+            color: T.text3;
+            vertical-alignment: bottom;
+            horizontal-stretch: 0;
+        }
+        Text {
+            text: root.m.hint;
+            font-size: 12px;
+            color: T.text3;
+            vertical-alignment: bottom;
+            horizontal-stretch: 1;
+        }
+    }
+    mr := MenuRow {
+        visible: root.m.kind == 0;
+        width: parent.width;
+        height: 32px;
+        label: root.m.label;
+        font: root.m.font;
+        hint: root.m.hint;
+        sel: root.m.sel;
+        hl: root.hl && !root.m.dis;
+        dis: root.m.dis;
+        clicked => { root.clicked(); }
+        hovered => { root.hovered(); }
+    }
+    if m.kind == 3: Rectangle {
+        border-radius: 4px;
+        background: root.hl ? T.hover : transparent;
+        HorizontalLayout {
+            padding-left: 6px;
+            padding-right: 10px;
+            spacing: 8px;
+            Rectangle {
+                width: 14px;
+                if root.m.sel: Check {
+                    y: (parent.height - self.height) / 2;
+                }
+            }
+            Text {
+                width: 28px;
+                text: root.m.num;
+                font-size: 12px;
+                color: T.text3;
+                horizontal-alignment: right;
+                vertical-alignment: center;
+            }
+            Text {
+                text: root.m.label;
+                overflow: elide;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+                min-width: 0px;
+            }
+            Text {
+                text: root.m.hint;
+                font-size: 12px;
+                color: T.text3;
+                vertical-alignment: center;
+                horizontal-stretch: 0;
+            }
+        }
+        TipArea {
+            tip: root.m.tip;
+            clicked => { root.clicked(); }
+            moved => { root.hovered(); }
+            hover-changed(h) => {
+                if h { root.hovered(); }
+            }
+        }
+    }
+}
+
+// Список пунктов меню (amenu / tmenu): head — сверху, items — с прокруткой, tail и foot — снизу
+component ItemMenu inherits MenuBox {
+    in property <[MItem]> head;
+    in property <[MItem]> items;
+    in property <[MItem]> tail;
+    in property <string> foot;
+    in property <length> list-max: 1000px;
+    in property <length> gh-pad: 28px;
+    in-out property <int> hl: -1;
+    callback act(string, int);
+    callback escape();
+    public function focus-keys() { keys.focus(); }
+    height: col.preferred-height;
+    col := VerticalLayout {
+        padding: 4px;
+        for m[i] in root.head: MRowAny {
+            m: m;
+            hl: root.hl == i;
+            gh-pad: root.gh-pad;
+            hovered => { root.hl = i; }
+            clicked => { root.act(m.id, i); }
+        }
+        list := Flickable {
+            height: root.items.length == 0 ? 0px : min(list-lay.preferred-height, root.list-max);
+            content-height: list-lay.preferred-height;
+            list-lay := VerticalLayout {
+                width: list.width;
+                for m[i] in root.items: MRowAny {
+                    m: m;
+                    hl: root.hl == root.head.length + i;
+                    gh-pad: root.gh-pad;
+                    hovered => { root.hl = root.head.length + i; }
+                    clicked => { root.act(m.id, root.head.length + i); }
+                }
+            }
+        }
+        for m[i] in root.tail: MRowAny {
+            m: m;
+            hl: root.hl == root.head.length + root.items.length + i;
+            gh-pad: root.gh-pad;
+            hovered => { root.hl = root.head.length + root.items.length + i; }
+            clicked => { root.act(m.id, root.head.length + root.items.length + i); }
+        }
+        if root.foot != "": HorizontalLayout {
+            padding-top: 6px;
+            padding-left: 28px;
+            padding-right: 8px;
+            padding-bottom: 4px;
+            Text {
+                text: root.foot;
+                font-size: 12px;
+                color: T.text3;
+                wrap: word-wrap;
+                min-width: 0px;
+                preferred-width: 0px;
+            }
+        }
+    }
+    property <int> n: root.head.length + root.items.length + root.tail.length;
+    pure function at(i: int) -> MItem {
+        return i < root.head.length ? root.head[i]
+            : i < root.head.length + root.items.length ? root.items[i - root.head.length]
+            : root.tail[i - root.head.length - root.items.length];
+    }
+    pure function skip(i: int) -> bool {
+        return i >= 0 && i < root.n && (root.at(i).kind == 1 || root.at(i).kind == 2 || root.at(i).dis);
+    }
+    pure function adv(i: int, d: int) -> int {
+        return root.skip(i) ? i + d : i;
+    }
+    function move(d: int) {
+        root.go(root.adv(root.adv((root.hl < 0 && d < 0 ? root.n : root.hl) + d, d), d));
+    }
+    function go(i: int) {
+        if i >= 0 && i < root.n {
+            root.hl = i;
+            // прокрутить к выделенному пункту
+            if i - root.head.length >= 0 && i - root.head.length < root.items.length {
+                if (i - root.head.length) * 32px + list.content-y < 0 {
+                    list.content-y = -(i - root.head.length) * 32px;
+                }
+                if (i - root.head.length + 1) * 32px + list.content-y > list.height {
+                    list.content-y = list.height - (i - root.head.length + 1) * 32px;
+                }
+            }
+        }
+    }
+    keys := FocusScope {
+        width: 0px;
+        height: 0px;
+        key-pressed(e) => {
+            if e.text == Key.Escape || e.text == Key.Tab {
+                root.escape();
+                return accept;
+            }
+            if e.text == Key.DownArrow {
+                root.move(1);
+                return accept;
+            }
+            if e.text == Key.UpArrow {
+                root.move(-1);
+                return accept;
+            }
+            if e.text == Key.Home {
+                root.hl = -1;
+                root.move(1);
+                return accept;
+            }
+            if e.text == Key.End {
+                root.hl = root.n;
+                root.move(-1);
+                return accept;
+            }
+            if e.text == Key.Return || e.text == " " {
+                if root.hl >= 0 && root.hl < root.n {
+                    root.act(root.at(root.hl).id, root.hl);
+                }
+                return accept;
+            }
+            accept
+        }
+    }
+}
+
+component Kbd inherits Rectangle {
+    in property <string> text;
+    height: 22px;
+    min-width: t.preferred-width + 14px;
+    border-radius: 3px;
+    background: T.sunken;
+    border-width: 1px;
+    border-color: T.line;
+    t := Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        font-family: T.mono;
+        font-size: 12px;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+}
+
+component StepNum inherits Rectangle {
+    in property <string> n;
+    width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: T.line-strong;
+    Text {
+        text: root.n;
+        font-size: 11px;
+        color: T.text2;
+        horizontal-alignment: center;
+        vertical-alignment: center;
+    }
+}
+
+// Строка прогресса (.row)
+component ProgRow inherits VerticalLayout {
+    in property <PRow> r;
+    in property <bool> paused;
+    spacing: 6px;
+    HorizontalLayout {
+        height: 24px;
+        spacing: 12px;
+        HorizontalLayout {
+            spacing: 6px;
+            horizontal-stretch: 0;
+            Text {
+                text: root.r.label;
+                font-weight: 600;
+                color: root.r.state == 0 ? T.text3 : T.text;
+                vertical-alignment: bottom;
+                height: 22px;
+            }
+            if root.r.num != "": Text {
+                text: root.r.num;
+                font-size: 12px;
+                color: T.text3;
+                vertical-alignment: bottom;
+                height: 21px;
+            }
+            if root.r.check: Rectangle {
+                width: 12px;
+                Check {
+                    y: 7px;
+                    thick: 1.4px;
+                    stroke: T.text2;
+                }
+            }
+        }
+        HorizontalLayout {
+            spacing: 6px;
+            horizontal-stretch: 1;
+            min-width: 0px;
+            alignment: start;
+            for s[i] in root.r.steps: HorizontalLayout {
+                spacing: 6px;
+                if i > 0: Text {
+                    text: "›";
+                    font-size: 12px;
+                    color: T.text3;
+                    vertical-alignment: bottom;
+                    height: 21px;
+                }
+                Text {
+                    text: s.text;
+                    font-size: 12px;
+                    font-weight: s.cls == 1 ? 600 : 400;
+                    color: s.cls == 0 ? T.text2 : s.cls == 1 ? T.text : T.text3;
+                    vertical-alignment: bottom;
+                    height: 21px;
+                }
+            }
+        }
+        Text {
+            text: root.r.pct-text;
+            font-size: 20px;
+            font-weight: 600;
+            min-width: 72px;
+            horizontal-alignment: right;
+            vertical-alignment: center;
+            color: root.r.state == 0 ? T.text3 : root.r.state == 2 ? T.text2 : root.r.state == 3 ? T.err : T.text;
+        }
+    }
+    Rectangle {
+        height: 4px;
+        border-radius: 2px;
+        background: T.track;
+        clip: true;
+        Rectangle {
+            x: 0px;
+            width: parent.width * clamp(root.r.pct / 100, 0, 1);
+            height: 4px;
+            border-radius: 2px;
+            background: root.r.state == 1 ? T.accent : root.r.state == 3 ? T.err : T.done;
+            animate width { duration: 350ms; }
+        }
+    }
+    HorizontalLayout {
+        spacing: 12px;
+        Text {
+            text: root.r.l;
+            font-size: 12px;
+            color: root.r.state == 0 ? T.text3 : root.r.state == 3 ? T.err : T.text2;
+            overflow: elide;
+            horizontal-stretch: 1;
+            min-width: 0px;
+            TipArea { tip: root.r.l; }
+        }
+        Text {
+            text: root.r.r;
+            font-size: 12px;
+            color: T.text2;
+            horizontal-stretch: 0;
+        }
+    }
+}
+
+export component AppWindow inherits Window {
+    title: S.title;
+    icon: @image-url("../../../icon.png");
+    preferred-width: 820px;
+    preferred-height: 760px;
+    min-width: 720px;
+    min-height: 640px;
+    background: T.bg;
+    default-font-family: T.sans;
+    default-font-size: 13px;
+
+    property <bool> dark: T.dark;
+    changed dark => { Palette.color-scheme = T.dark ? ColorScheme.dark : ColorScheme.light; }
+    changed width => { Win.w = self.width; S.fit("win", self.width); }
+    changed height => { Win.h = self.height; }
+    init => {
+        Palette.color-scheme = T.dark ? ColorScheme.dark : ColorScheme.light;
+        Win.w = self.width;
+        Win.h = self.height;
+        ti.focus();
+    }
+
+    property <bool> narrow: self.width < 760px;
+    // ширина колонок сетки параметров: подписи — по самой длинной (считает Rust), поля делят остаток поровну
+    property <length> gw: sv.visible-width - 60px;
+    property <length> fr: S.narrow-grid ? max(0px, root.gw - S.grid-l0 - 12px) : max(0px, (root.gw - S.grid-l0 - S.grid-l2 - 36px) / 2);
+    pure function colw(k: int) -> length {
+        return k == 0 ? S.grid-l0 : (k == 2 && !S.narrow-grid) ? S.grid-l2 : root.fr;
+    }
+    pure function cw(c: Cell) -> length {
+        return c.span == 1 ? root.colw(c.col)
+            : c.span == 2 ? root.colw(c.col) + root.colw(c.col + 1) + 12px
+            : c.span == 3 ? root.colw(c.col) + root.colw(c.col + 1) + root.colw(c.col + 2) + 24px
+            : root.colw(0) + root.colw(1) + root.colw(2) + root.colw(3) + 36px;
+    }
+    property <length> lh: 20px;
+    // якорь для меню у карточки превью (координаты окна)
+    property <length> ax;
+    property <length> ay;
+    property <length> aw;
+    property <length> ah;
+    property <bool> result-hover;
+    property <bool> proxy-focus;
+
+    public function close-popups() {
+        app-pop.close();
+        lang-pop.close();
+        track-pop.close();
+        pl-pop.close();
+        subs-pop.close();
+        trim-pop.close();
+    }
+    // курсор в конец списка ссылок (после «Вставить») и прокрутка к нему
+    public function urls-to-end(bytes: int) {
+        ti.set-selection-offsets(bytes, bytes);
+        fl.content-y = min(0px, fl.height - fl.content-height);
+    }
+    public function focus-urls() { ti.focus(); }
+    // демо: открыть меню без щелчка (для снимков окна)
+    public function demo-popup(k: string) {
+        root.ax = 330px;
+        root.ay = 255px;
+        root.aw = 60px;
+        root.ah = 22px;
+        if k == "app" { app-pop.show(); }
+        if k == "lang" { lang-pop.show(); }
+        if k == "track" { track-pop.show(); }
+        if k == "subs" { subs-pop.show(); }
+        if k == "pl" { pl-pop.show(); }
+        if k == "trim" { root.ax = 700px; trim-pop.show(); }
+    }
+    public function reveal-log() {
+        sv.content-y = min(0px, sv.visible-height - lay.height);
+    }
+
+    keys := FocusScope {
+        capture-key-pressed(e) => {
+            if e.text == Key.Return && e.modifiers.control {
+                S.key-start();
+                return accept;
+            }
+            if e.text == Key.Pause || (e.text == " " && e.modifiers.control) {
+                S.key-pause();
+                return accept;
+            }
+            if e.text == Key.Escape && S.ext-show {
+                S.ext-close();
+                return accept;
+            }
+            if e.modifiers.control && (e.text == "v" || e.text == "V" || e.text == "м" || e.text == "М") && !ti.has-focus && !root.proxy-focus && !S.running && !S.ext-show {
+                S.key-paste();
+                return accept;
+            }
+            if e.modifiers.control && (e.text == "c" || e.text == "C" || e.text == "с" || e.text == "С") && !ti.has-focus && !root.proxy-focus && root.result-hover {
+                S.copy-result();
+                return accept;
+            }
+            reject
+        }
+
+        VerticalLayout {
+            sv := ScrollView {
+                vertical-stretch: 1;
+                content-width: self.visible-width;
+                content-height: lay.height;
+                lay := VerticalLayout {
+                    width: sv.visible-width;
+                    height: max(sv.visible-height, self.min-height);
+                    padding-top: 14px;
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    spacing: 16px;
+
+                    // ================= ссылки
+                    VerticalLayout {
+                        spacing: 6px;
+                        vertical-stretch: 0;
+                        HorizontalLayout {
+                            height: 24px;
+                            spacing: 8px;
+                            Text {
+                                text: S.t("links.title");
+                                font-weight: 600;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: S.t("links.sub");
+                                font-size: 12px;
+                                color: T.text3;
+                                vertical-alignment: center;
+                                overflow: elide;
+                                horizontal-stretch: 1;
+                                min-width: 0px;
+                            }
+                            HorizontalLayout {
+                                spacing: 2px;
+                                horizontal-stretch: 0;
+                                TBtn {
+                                    text: S.t("links.paste");
+                                    tip: S.t("links.pasteTip");
+                                    enabled: !S.paste-dis;
+                                    clicked => { S.paste(); }
+                                }
+                                TBtn {
+                                    text: S.t("links.clear");
+                                    enabled: !S.clear-dis;
+                                    clicked => { S.clear(); }
+                                }
+                                Rectangle { width: 4px; }
+                                dots := TBtn {
+                                    width: 28px;
+                                    text: "";
+                                    tip: S.t("app.menu");
+                                    clicked => {
+                                        app-pop.show();
+                                    }
+                                    HorizontalLayout {
+                                        alignment: center;
+                                        spacing: 3px;
+                                        for i in 3: Rectangle {
+                                            width: 3px;
+                                            height: 3px;
+                                            border-radius: 1.5px;
+                                            background: T.text2;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        input-box := Rectangle {
+                            height: Win.h < 700px ? 72px : 92px;
+                            background: T.surface;
+                            border-radius: 4px;
+                            clip: true;
+                            HorizontalLayout {
+                                Rectangle {
+                                    width: 36px;
+                                    clip: true;
+                                    VerticalLayout {
+                                        y: 6px + (S.list-mode ? ul.content-y : fl.content-y);
+                                        height: self.preferred-height;
+                                        for g in S.gutter: HorizontalLayout {
+                                            height: root.lh;
+                                            alignment: end;
+                                            padding-right: 8px;
+                                            spacing: 5px;
+                                            if g.mark == 1 || g.mark == 3: Dot {
+                                                dot-color: g.mark == 3 ? T.err : T.accent;
+                                            }
+                                            if g.mark == 2: Check {
+                                                size: 10px;
+                                                thick: 1.6px;
+                                                stroke: T.text2;
+                                            }
+                                            Text {
+                                                text: g.n;
+                                                font-size: 12px;
+                                                color: T.text3;
+                                                vertical-alignment: center;
+                                            }
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    width: 1px;
+                                    background: T.line;
+                                }
+                                Rectangle {
+                                    horizontal-stretch: 1;
+                                    fl := Flickable {
+                                        visible: !S.list-mode;
+                                        content-width: max(self.width, ti.preferred-width + 20px);
+                                        content-height: max(self.height, ti.preferred-height + 12px);
+                                        if S.urls == "": Text {
+                                            x: 10px;
+                                            y: 6px;
+                                            width: fl.width - 20px;
+                                            overflow: elide;
+                                            height: root.lh;
+                                            text: S.t("links.placeholder");
+                                            color: T.text3;
+                                            font-family: T.mono;
+                                            font-size: 12px;
+                                            vertical-alignment: center;
+                                        }
+                                        ti := TextInput {
+                                            x: 10px;
+                                            y: 6px;
+                                            width: max(fl.width - 20px, self.preferred-width);
+                                            height: max(fl.height - 12px, self.preferred-height);
+                                            single-line: false;
+                                            wrap: no-wrap;
+                                            font-family: T.mono;
+                                            font-size: 12px;
+                                            line-height-factor: root.lh / max(1px, probe.preferred-height);
+                                            color: T.text;
+                                            selection-background-color: T.dark ? #4D6E99 : #B8D2F0;
+                                            selection-foreground-color: T.text;
+                                            text <=> S.urls;
+                                            edited => { S.urls-edited(self.text); }
+                                            cursor-position-changed(p) => {
+                                                if p.y + fl.content-y < 0 {
+                                                    fl.content-y = -p.y;
+                                                }
+                                                if p.y + root.lh + 12px + fl.content-y > fl.height {
+                                                    fl.content-y = fl.height - p.y - root.lh - 12px;
+                                                }
+                                                if p.x + fl.content-x < 0 {
+                                                    fl.content-x = -p.x;
+                                                }
+                                                if p.x + 30px + fl.content-x > fl.width {
+                                                    fl.content-x = fl.width - p.x - 30px;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    probe := Text {
+                                        visible: false;
+                                        text: "0";
+                                        font-family: T.mono;
+                                        font-size: 12px;
+                                    }
+                                    ul := Flickable {
+                                        visible: S.list-mode;
+                                        content-height: ul-lay.preferred-height + 12px;
+                                        ul-lay := VerticalLayout {
+                                            y: 6px;
+                                            x: 10px;
+                                            width: ul.width - 20px;
+                                            for u in S.url-list: Text {
+                                                height: root.lh;
+                                                text: u.text;
+                                                font-family: T.mono;
+                                                font-size: 12px;
+                                                color: u.done ? T.text2 : T.text;
+                                                overflow: elide;
+                                                vertical-alignment: center;
+                                                TipArea {
+                                                    tip: u.tip;
+                                                    clicked => {
+                                                        S.edit-list();
+                                                        if !S.list-mode { ti.focus(); }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        TipArea {
+                                            tip: S.running ? "" : S.t("links.editTip");
+                                            clicked => {
+                                                S.edit-list();
+                                                if !S.list-mode { ti.focus(); }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            // рамка поверх содержимого
+                            Rectangle {
+                                border-radius: 4px;
+                                border-width: ti.has-focus ? 2px : 1px;
+                                border-color: ti.has-focus ? T.focus : box-hover.has-hover ? T.text3 : T.line-strong;
+                                box-hover := TouchArea {
+                                    enabled: false;
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= превью
+                    HorizontalLayout {
+                        height: root.narrow ? 108px : 135px;
+                        spacing: 16px;
+                        vertical-stretch: 0;
+                        Rectangle {
+                            width: root.narrow ? 192px : 240px;
+                            border-radius: 4px;
+                            background: T.sunken;
+                            clip: true;
+                            if S.pv.has-thumb: Image {
+                                width: parent.width;
+                                height: parent.height;
+                                source: S.pv.thumb;
+                                image-fit: cover;
+                            }
+                            if !S.pv.has-thumb && S.pv.state != 1 && S.pv.state != 2: Text {
+                                text: S.pv.msg;
+                                font-size: 12px;
+                                color: T.text3;
+                                horizontal-alignment: center;
+                                vertical-alignment: center;
+                            }
+                            if S.pv.state == 1: Spinner { }
+                            if S.pv.state == 2: ErrIcon { }
+                            if S.pv.chip != "": Rectangle {
+                                x: parent.width - self.width - 6px;
+                                y: parent.height - 24px;
+                                height: 18px;
+                                width: max(chip.preferred-width, Measure.text-w(S.pv.chip, 11px, 600)) + 10px;
+                                border-radius: 3px;
+                                background: #000000cc;
+                                chip := Text {
+                                    width: parent.width;
+                                    height: parent.height;
+                                    text: S.pv.chip;
+                                    font-size: 11px;
+                                    font-weight: 600;
+                                    color: white;
+                                    vertical-alignment: center;
+                                    horizontal-alignment: center;
+                                }
+                            }
+                            Rectangle {
+                                border-radius: 4px;
+                                border-width: 1px;
+                                border-color: T.line;
+                            }
+                        }
+                        Rectangle {
+                            horizontal-stretch: 1;
+                            min-width: 0px;
+                            if S.pv.state == 0: Text {
+                                y: 0px;
+                                height: 20px;
+                                width: parent.width;
+                                text: S.t("pv.emptyHint");
+                                color: T.text3;
+                                overflow: elide;
+                            }
+                            if S.pv.state == 1: VerticalLayout {
+                                Rectangle { height: 4px; }
+                                Rectangle { height: 12px; width: parent.width * 0.78; border-radius: 2px; background: T.sunken; }
+                                Rectangle { height: 8px; }
+                                Rectangle { height: 12px; width: parent.width * 0.52; border-radius: 2px; background: T.sunken; }
+                                Rectangle { height: 12px; }
+                                Rectangle { height: 10px; width: parent.width * 0.30; border-radius: 2px; background: T.sunken; }
+                                Rectangle { vertical-stretch: 1; }
+                                Text {
+                                    text: S.t("pv.loading");
+                                    font-size: 12px;
+                                    color: T.text2;
+                                }
+                                Text {
+                                    text: S.pv.url;
+                                    font-family: T.mono;
+                                    font-size: 11px;
+                                    color: T.text3;
+                                    overflow: elide;
+                                    min-width: 0px;
+                                }
+                            }
+                            if S.pv.state == 2: VerticalLayout {
+                                Text {
+                                    text: S.pv.title;
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    wrap: word-wrap;
+                                    overflow: elide;
+                                    max-height: 40px;
+                                    min-width: 0px;
+                                }
+                                Text {
+                                    text: S.pv.err;
+                                    color: T.err;
+                                    wrap: word-wrap;
+                                    overflow: elide;
+                                    min-width: 0px;
+                                    max-height: 60px;
+                                }
+                                Rectangle { vertical-stretch: 1; }
+                                Text {
+                                    text: S.pv.url;
+                                    font-family: T.mono;
+                                    font-size: 11px;
+                                    color: T.text3;
+                                    overflow: elide;
+                                    min-width: 0px;
+                                    TipArea { tip: S.pv.url; }
+                                }
+                            }
+                            if S.pv.state >= 3: VerticalLayout {
+                                Text {
+                                    text: S.pv.title;
+                                    font-size: 15px;
+                                    font-weight: 600;
+                                    wrap: word-wrap;
+                                    overflow: elide;
+                                    max-height: 40px;
+                                    min-width: 0px;
+                                    TipArea { tip: S.pv.title; }
+                                }
+                                Text {
+                                    text: S.pv.byline;
+                                    color: T.text2;
+                                    overflow: elide;
+                                    min-width: 0px;
+                                    TipArea { tip: S.pv.byline; }
+                                }
+                                Rectangle { vertical-stretch: 1; }
+                                // ---- Видео
+                                HorizontalLayout {
+                                    height: 22px;
+                                    spacing: 10px;
+                                    Text {
+                                        width: S.pv.kw;
+                                        text: S.t("pv.video");
+                                        font-size: 12px;
+                                        color: T.text3;
+                                        vertical-alignment: center;
+                                    }
+                                    if S.pv.state == 3: HorizontalLayout {
+                                        spacing: 8px;
+                                        horizontal-stretch: 1;
+                                        min-width: 0px;
+                                        if S.pv.src != "": Text {
+                                            text: S.pv.src;
+                                            font-size: 12px;
+                                            font-weight: 600;
+                                            vertical-alignment: center;
+                                            horizontal-stretch: 0;
+                                        }
+                                        if S.pv.src != "": Text {
+                                            text: "→";
+                                            font-size: 12px;
+                                            color: T.text3;
+                                            vertical-alignment: center;
+                                            horizontal-stretch: 0;
+                                        }
+                                        Text {
+                                            text: S.pv.out;
+                                            font-size: 12px;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 0;
+                                        }
+                                        Rectangle { horizontal-stretch: 1; min-width: 0px; }
+                                        trim-btn := TBtn {
+                                            text: S.pv.trim;
+                                            bold: S.pv.trim-on;
+                                            fg: S.pv.trim-on ? T.text : T.text2;
+                                            tip: S.t("pv.trimTip");
+                                            enabled: !S.running;
+                                            clicked => {
+                                                root.ax = self.absolute-position.x;
+                                                root.ay = self.absolute-position.y;
+                                                root.aw = self.width;
+                                                root.ah = self.height;
+                                                S.trim-open();
+                                                trim-pop.show();
+                                            }
+                                        }
+                                    }
+                                    if S.pv.state == 4: HorizontalLayout {
+                                        spacing: 8px;
+                                        horizontal-stretch: 1;
+                                        min-width: 0px;
+                                        padding-left: -6px;
+                                        MBtn {
+                                            text: S.pv.pl-label;
+                                            enabled: !S.running;
+                                            clicked => {
+                                                root.ax = self.absolute-position.x;
+                                                root.ay = self.absolute-position.y;
+                                                root.aw = self.width;
+                                                root.ah = self.height;
+                                                S.pl-open();
+                                                pl-pop.show();
+                                            }
+                                        }
+                                        Text {
+                                            text: S.pv.pl-folder;
+                                            font-size: 12px;
+                                            color: T.text3;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 1;
+                                            TipArea { tip: S.pv.pl-folder; }
+                                        }
+                                    }
+                                }
+                                // ---- Файлы (плейлист)
+                                if S.pv.state == 4: HorizontalLayout {
+                                    height: 22px;
+                                    spacing: 10px;
+                                    Text {
+                                        width: S.pv.kw;
+                                        text: S.t("pl.files");
+                                        font-size: 12px;
+                                        color: T.text3;
+                                        vertical-alignment: center;
+                                    }
+                                    Text {
+                                        text: S.pv.pl-files;
+                                        font-size: 12px;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                        min-width: 0px;
+                                        horizontal-stretch: 1;
+                                    }
+                                }
+                                // ---- Озвучка
+                                if S.pv.state == 4: HorizontalLayout {
+                                    height: 22px;
+                                    spacing: 10px;
+                                    Text {
+                                        width: S.pv.kw;
+                                        text: S.t("pv.audio");
+                                        font-size: 12px;
+                                        color: T.text3;
+                                        vertical-alignment: center;
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        horizontal-stretch: 1;
+                                        Text {
+                                            text: S.pv.pl-audio;
+                                            font-size: 12px;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 0;
+                                        }
+                                        Text {
+                                            text: S.pv.pl-note;
+                                            font-size: 12px;
+                                            color: T.text3;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 1;
+                                        }
+                                    }
+                                }
+                                if S.pv.state == 3 && S.pv.akind > 0: HorizontalLayout {
+                                    height: 22px;
+                                    spacing: 10px;
+                                    Text {
+                                        width: S.pv.kw;
+                                        text: S.t("pv.audio");
+                                        font-size: 12px;
+                                        color: T.text3;
+                                        vertical-alignment: center;
+                                    }
+                                    if S.pv.akind == 1: Text {
+                                        text: S.pv.atext;
+                                        font-size: 12px;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                        min-width: 0px;
+                                        horizontal-stretch: 1;
+                                    }
+                                    if S.pv.akind == 2: HorizontalLayout {
+                                        spacing: 8px;
+                                        horizontal-stretch: 1;
+                                        min-width: 0px;
+                                        padding-left: -6px;
+                                        MBtn {
+                                            text: S.pv.alabel;
+                                            bold: S.pv.aov;
+                                            enabled: !S.running;
+                                            tip: S.pv.atip;
+                                            clicked => {
+                                                root.ax = self.absolute-position.x;
+                                                root.ay = self.absolute-position.y;
+                                                root.aw = self.width;
+                                                root.ah = self.height;
+                                                S.track-open();
+                                                track-pop.show();
+                                            }
+                                        }
+                                        Text {
+                                            text: S.pv.anote;
+                                            font-size: 12px;
+                                            color: T.text3;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 1;
+                                            TipArea { tip: S.pv.anote; }
+                                        }
+                                        if S.pv.aov: TBtn {
+                                            text: S.t("pv.reset");
+                                            fg: T.text2;
+                                            enabled: !S.running;
+                                            clicked => { S.audio-reset(); }
+                                        }
+                                    }
+                                }
+                                // ---- Субтитры
+                                if S.pv.state == 3: HorizontalLayout {
+                                    height: 22px;
+                                    spacing: 10px;
+                                    Text {
+                                        width: S.pv.kw;
+                                        text: S.t("pv.subs");
+                                        font-size: 12px;
+                                        color: T.text3;
+                                        vertical-alignment: center;
+                                    }
+                                    HorizontalLayout {
+                                        spacing: 8px;
+                                        horizontal-stretch: 1;
+                                        min-width: 0px;
+                                        padding-left: S.pv.skind == 2 ? -6px : 0px;
+                                        if S.pv.skind == 0 || S.pv.skind == 1: Text {
+                                            text: S.pv.sa;
+                                            font-size: 12px;
+                                            color: T.text3;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 1;
+                                        }
+                                        if S.pv.skind == 2: MBtn {
+                                            text: S.pv.sbtn;
+                                            clicked => {
+                                                root.ax = self.absolute-position.x;
+                                                root.ay = self.absolute-position.y;
+                                                root.aw = self.width;
+                                                root.ah = self.height;
+                                                S.subs-open();
+                                                subs-pop.show();
+                                            }
+                                        }
+                                        if S.pv.skind == 2: Text {
+                                            text: S.pv.sa;
+                                            font-size: 12px;
+                                            color: T.text3;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 1;
+                                        }
+                                        if S.pv.skind == 3 || S.pv.skind == 4: Text {
+                                            text: S.pv.sa;
+                                            font-size: 12px;
+                                            font-weight: S.pv.skind == 3 ? 600 : 400;
+                                            vertical-alignment: center;
+                                            overflow: elide;
+                                            min-width: 0px;
+                                            horizontal-stretch: 0;
+                                            TipArea { tip: S.pv.stip; }
+                                        }
+                                        if S.pv.skind == 3: Text {
+                                            text: S.pv.sb;
+                                            font-size: 12px;
+                                            color: T.text2;
+                                            vertical-alignment: center;
+                                            horizontal-stretch: 0;
+                                        }
+                                        if S.pv.skind >= 3: MBtn {
+                                            text: S.pv.sbtn;
+                                            plain: true;
+                                            clicked => {
+                                                root.ax = self.absolute-position.x;
+                                                root.ay = self.absolute-position.y;
+                                                root.aw = self.width;
+                                                root.ah = self.height;
+                                                S.subs-open();
+                                                subs-pop.show();
+                                            }
+                                        }
+                                        if S.pv.skind >= 3: Rectangle { horizontal-stretch: 1; }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= параметры
+                    VerticalLayout {
+                        vertical-stretch: 0;
+                        Rectangle { height: 1px; background: T.line; }
+                        CHead {
+                            title: S.t("set.title");
+                            sum: S.set-sum;
+                            open: S.set-open;
+                            toggled(v) => { S.toggle-settings(v); }
+                        }
+                        if S.set-open: GridLayout {
+                            spacing-horizontal: 12px;
+                            spacing-vertical: 8px;
+                            padding-left: 20px;
+                            padding-bottom: 12px;
+                            // 0, 1: папка
+                            if S.cells[0].show: Lab { row: S.cells[0].row; col: S.cells[0].col; colspan: S.cells[0].span; width: root.cw(S.cells[0]); text: S.t("set.folder"); }
+                            if S.cells[1].show: HorizontalLayout {
+                                row: S.cells[1].row; col: S.cells[1].col; colspan: S.cells[1].span; width: root.cw(S.cells[1]);
+                                spacing: 8px;
+                                Field {
+                                    horizontal-stretch: 1;
+                                    text: S.out-dir;
+                                    tip: S.out-dir-tip;
+                                    double-clicked => { if !S.locked { S.browse(); } }
+                                    changed width => { S.fit("outDir", self.width - 22px); }
+                                    init => { S.fit("outDir", self.width - 22px); }
+                                }
+                                Btn {
+                                    text: S.t("set.browse");
+                                    enabled: !S.locked;
+                                    clicked => { S.browse(); }
+                                }
+                            }
+                            // 2-5: кодек, разрешение
+                            if S.cells[2].show: Lab { row: S.cells[2].row; col: S.cells[2].col; colspan: S.cells[2].span; width: root.cw(S.cells[2]); text: S.t("set.codec"); }
+                            if S.cells[3].show: Select { row: S.cells[3].row; col: S.cells[3].col; colspan: S.cells[3].span; width: root.cw(S.cells[3]); data: S.sel-codec; selected(v) => { S.select("codec", v); } }
+                            if S.cells[4].show: Lab { row: S.cells[4].row; col: S.cells[4].col; colspan: S.cells[4].span; width: root.cw(S.cells[4]); text: S.t("set.resolution"); }
+                            if S.cells[5].show: Select { row: S.cells[5].row; col: S.cells[5].col; colspan: S.cells[5].span; width: root.cw(S.cells[5]); data: S.sel-max-height; selected(v) => { S.select("max_height", v); } }
+                            // 6, 7: качество (CRF)
+                            if S.cells[6].show: Lab { row: S.cells[6].row; col: S.cells[6].col; colspan: S.cells[6].span; width: root.cw(S.cells[6]); text: S.t("set.quality"); }
+                            if S.cells[7].show: HorizontalLayout {
+                                row: S.cells[7].row; col: S.cells[7].col; colspan: S.cells[7].span; width: root.cw(S.cells[7]);
+                                height: 32px;
+                                spacing: 12px;
+                                CrfSlider {
+                                    value: S.crf;
+                                    enabled: !S.locked;
+                                    changed-value(v) => { S.crf-set(v); }
+                                }
+                                Text {
+                                    text: S.crf;
+                                    font-weight: 600;
+                                    min-width: 16px;
+                                    vertical-alignment: center;
+                                    horizontal-stretch: 0;
+                                }
+                                Text {
+                                    text: S.crf-word;
+                                    color: T.text2;
+                                    vertical-alignment: center;
+                                    horizontal-stretch: 0;
+                                }
+                                Text {
+                                    text: S.t("set.crfNote");
+                                    font-size: 12px;
+                                    color: T.text3;
+                                    vertical-alignment: center;
+                                    overflow: elide;
+                                    min-width: 0px;
+                                    horizontal-stretch: 1;
+                                }
+                            }
+                            // 8-11: скорость, звук
+                            if S.cells[8].show: Lab { row: S.cells[8].row; col: S.cells[8].col; colspan: S.cells[8].span; width: root.cw(S.cells[8]); text: S.t("set.speed"); }
+                            if S.cells[9].show: Select { row: S.cells[9].row; col: S.cells[9].col; colspan: S.cells[9].span; width: root.cw(S.cells[9]); data: S.sel-preset; selected(v) => { S.select("preset", v); } }
+                            if S.cells[10].show: Lab { row: S.cells[10].row; col: S.cells[10].col; colspan: S.cells[10].span; width: root.cw(S.cells[10]); text: S.t("set.sound"); }
+                            if S.cells[11].show: Select { row: S.cells[11].row; col: S.cells[11].col; colspan: S.cells[11].span; width: root.cw(S.cells[11]); data: S.sel-audio; selected(v) => { S.select("audio", v); } }
+                            // 12-14: кодировщик
+                            if S.cells[12].show: Lab { row: S.cells[12].row; col: S.cells[12].col; colspan: S.cells[12].span; width: root.cw(S.cells[12]); text: S.t("set.encoder"); }
+                            if S.cells[13].show: Select { row: S.cells[13].row; col: S.cells[13].col; colspan: S.cells[13].span; width: root.cw(S.cells[13]); data: S.sel-encoder; selected(v) => { S.select("encoder", v); } }
+                            if S.cells[14].show: Hint2 { row: S.cells[14].row; col: S.cells[14].col; colspan: S.cells[14].span; width: root.cw(S.cells[14]); text: S.enc-hint; }
+                            // 15-17: озвучка
+                            if S.cells[15].show: Lab { row: S.cells[15].row; col: S.cells[15].col; colspan: S.cells[15].span; width: root.cw(S.cells[15]); text: S.t("set.audio"); }
+                            if S.cells[16].show: Select { row: S.cells[16].row; col: S.cells[16].col; colspan: S.cells[16].span; width: root.cw(S.cells[16]); data: S.sel-audio-lang; selected(v) => { S.select("audio_lang", v); } }
+                            if S.cells[17].show: Hint2 { row: S.cells[17].row; col: S.cells[17].col; colspan: S.cells[17].span; width: root.cw(S.cells[17]); text: S.t("set.audioHint"); }
+                            // 18-22: субтитры
+                            if S.cells[18].show: Lab { row: S.cells[18].row; col: S.cells[18].col; colspan: S.cells[18].span; width: root.cw(S.cells[18]); text: S.t("set.subs"); }
+                            if S.cells[19].show: Select { row: S.cells[19].row; col: S.cells[19].col; colspan: S.cells[19].span; width: root.cw(S.cells[19]); data: S.sel-subs; selected(v) => { S.select("subs", v); } }
+                            if S.cells[20].show: Lab { row: S.cells[20].row; col: S.cells[20].col; colspan: S.cells[20].span; width: root.cw(S.cells[20]); text: S.t("set.subsLang"); }
+                            if S.cells[21].show: Select { row: S.cells[21].row; col: S.cells[21].col; colspan: S.cells[21].span; width: root.cw(S.cells[21]); data: S.sel-subs-lang; selected(v) => { S.select("subs_lang", v); } }
+                            if S.cells[22].show: Hint2 { row: S.cells[22].row; col: S.cells[22].col; colspan: S.cells[22].span; width: root.cw(S.cells[22]); text: S.t("set.subsOffHint"); }
+                            // 23-26: имя файла, очередь
+                            if S.cells[23].show: Lab { row: S.cells[23].row; col: S.cells[23].col; colspan: S.cells[23].span; width: root.cw(S.cells[23]); text: S.t("set.name"); }
+                            if S.cells[24].show: Select { row: S.cells[24].row; col: S.cells[24].col; colspan: S.cells[24].span; width: root.cw(S.cells[24]); data: S.sel-name-tpl; selected(v) => { S.select("name_tpl", v); } }
+                            if S.cells[25].show: Lab { row: S.cells[25].row; col: S.cells[25].col; colspan: S.cells[25].span; width: root.cw(S.cells[25]); text: S.t("set.queue"); }
+                            if S.cells[26].show: Select { row: S.cells[26].row; col: S.cells[26].col; colspan: S.cells[26].span; width: root.cw(S.cells[26]); data: S.sel-parallel; selected(v) => { S.select("parallel", v); } }
+                            // 27-29: SponsorBlock
+                            if S.cells[27].show: Lab { row: S.cells[27].row; col: S.cells[27].col; colspan: S.cells[27].span; width: root.cw(S.cells[27]); text: S.t("set.sponsor"); }
+                            if S.cells[28].show: Select { row: S.cells[28].row; col: S.cells[28].col; colspan: S.cells[28].span; width: root.cw(S.cells[28]); data: S.sel-sponsorblock; selected(v) => { S.select("sponsorblock", v); } }
+                            if S.cells[29].show: Hint2 { row: S.cells[29].row; col: S.cells[29].col; colspan: S.cells[29].span; width: root.cw(S.cells[29]); text: S.t("set.sponsorHint"); }
+                            // 30: «Вход и сеть»
+                            if S.cells[30].show: Text {
+                                row: S.cells[30].row; col: S.cells[30].col; colspan: S.cells[30].span; width: root.cw(S.cells[30]);
+                                text: S.t("set.net");
+                                font-size: 12px;
+                                color: T.text3;
+                                vertical-alignment: bottom;
+                                height: 22px;
+                            }
+                            // 31-35: cookies
+                            if S.cells[31].show: Lab { row: S.cells[31].row; col: S.cells[31].col; colspan: S.cells[31].span; width: root.cw(S.cells[31]); text: S.t("set.cookies"); }
+                            if S.cells[32].show: Select { row: S.cells[32].row; col: S.cells[32].col; colspan: S.cells[32].span; width: root.cw(S.cells[32]); data: S.sel-cookies; selected(v) => { S.select("cookies", v); } }
+                            if S.cells[33].show: Hint2 { row: S.cells[33].row; col: S.cells[33].col; colspan: S.cells[33].span; width: root.cw(S.cells[33]); text: S.ck-hint; }
+                            if S.cells[34].show: Lab { row: S.cells[34].row; col: S.cells[34].col; colspan: S.cells[34].span; width: root.cw(S.cells[34]); text: ""; }
+                            if S.cells[35].show: HorizontalLayout {
+                                row: S.cells[35].row; col: S.cells[35].col; colspan: S.cells[35].span; width: root.cw(S.cells[35]);
+                                spacing: 8px;
+                                Field {
+                                    horizontal-stretch: 1;
+                                    text: S.cookies-file;
+                                    empty: S.cookies-file-empty;
+                                    tip: S.cookies-file-tip;
+                                    double-clicked => { if !S.locked { S.browse-cookies(); } }
+                                    changed width => { S.fit("cookiesFile", self.width - 22px); }
+                                    init => { S.fit("cookiesFile", self.width - 22px); }
+                                }
+                                Btn {
+                                    text: S.t("set.browse");
+                                    enabled: !S.locked;
+                                    clicked => { S.browse-cookies(); }
+                                }
+                            }
+                            // 36-39: прокси, ограничение скорости
+                            if S.cells[36].show: Lab { row: S.cells[36].row; col: S.cells[36].col; colspan: S.cells[36].span; width: root.cw(S.cells[36]); text: S.t("set.proxy"); }
+                            if S.cells[37].show: TField {
+                                row: S.cells[37].row; col: S.cells[37].col; colspan: S.cells[37].span; width: root.cw(S.cells[37]);
+                                mono: true;
+                                placeholder: "socks5://127.0.0.1:1080";
+                                enabled: !S.locked;
+                                text <=> S.proxy;
+                                edited(t) => { S.proxy-edited(t); }
+                                accepted => { keys.focus(); }
+                                focus-lost => { S.proxy-done(); }
+                                focus-changed(f) => { root.proxy-focus = f; }
+                            }
+                            if S.cells[38].show: Lab { row: S.cells[38].row; col: S.cells[38].col; colspan: S.cells[38].span; width: root.cw(S.cells[38]); text: S.t("set.rate"); }
+                            if S.cells[39].show: Select { row: S.cells[39].row; col: S.cells[39].col; colspan: S.cells[39].span; width: root.cw(S.cells[39]); data: S.sel-rate-limit; selected(v) => { S.select("rate_limit", v); } }
+                        }
+                    }
+
+                    // ================= прогресс
+                    if S.prog-show: VerticalLayout {
+                        spacing: 12px;
+                        vertical-stretch: 0;
+                        HorizontalLayout {
+                            spacing: 10px;
+                            height: 20px;
+                            Text {
+                                text: S.q-label;
+                                font-weight: 600;
+                                vertical-alignment: bottom;
+                                horizontal-stretch: 0;
+                            }
+                            Text {
+                                text: S.q-next;
+                                font-size: 12px;
+                                color: T.text3;
+                                vertical-alignment: bottom;
+                                overflow: elide;
+                                min-width: 0px;
+                                horizontal-stretch: 1;
+                                height: 19px;
+                                TipArea { tip: S.q-next; }
+                            }
+                        }
+                        if S.rows-show: VerticalLayout {
+                            spacing: 12px;
+                            for r in S.rows: ProgRow {
+                                r: r;
+                            }
+                        }
+                        if S.res-show: Rectangle {
+                            background: T.surface;
+                            border-width: 1px;
+                            border-color: T.line;
+                            border-radius: 4px;
+                            height: res-lay.preferred-height;
+                            res-lay := VerticalLayout {
+                                padding-top: 5px;
+                                padding-bottom: 5px;
+                                padding-left: 10px;
+                                padding-right: 10px;
+                                HorizontalLayout {
+                                    height: 20px;
+                                    spacing: 10px;
+                                    Check {
+                                        thick: 1.5px;
+                                    }
+                                    Text {
+                                        width: max(72px, self.preferred-width);
+                                        text: S.t("res.saved");
+                                        font-weight: 600;
+                                        vertical-alignment: center;
+                                    }
+                                    Text {
+                                        text: S.res-path;
+                                        font-size: 12px;
+                                        color: T.text2;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                        min-width: 0px;
+                                        horizontal-stretch: 1;
+                                        changed width => { S.fit("resPath", self.width - 2px); }
+                                        init => { S.fit("resPath", self.width - 2px); }
+                                        TipArea { tip: S.res-tip; }
+                                    }
+                                    Text {
+                                        text: S.res-size;
+                                        font-size: 12px;
+                                        color: T.text2;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 0;
+                                    }
+                                }
+                                if S.srt-show: HorizontalLayout {
+                                    height: 20px;
+                                    spacing: 10px;
+                                    Rectangle { width: 12px; }
+                                    Text {
+                                        width: max(72px, self.preferred-width);
+                                        text: S.t("res.subs");
+                                        font-size: 12px;
+                                        color: T.text2;
+                                        vertical-alignment: center;
+                                    }
+                                    Text {
+                                        text: S.srt-name;
+                                        font-size: 12px;
+                                        color: T.text2;
+                                        vertical-alignment: center;
+                                        overflow: elide;
+                                        min-width: 0px;
+                                        horizontal-stretch: 1;
+                                        TipArea { tip: S.srt-tip; }
+                                    }
+                                    Text {
+                                        text: S.t("res.nextTo");
+                                        font-size: 12px;
+                                        color: T.text3;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 0;
+                                    }
+                                }
+                            }
+                            TipArea {
+                                hover-changed(h) => { root.result-hover = h; }
+                            }
+                        }
+                        if S.err-show: Rectangle {
+                            background: T.surface;
+                            border-width: 1px;
+                            border-color: T.line;
+                            border-radius: 4px;
+                            height: err-lay.preferred-height;
+                            err-lay := HorizontalLayout {
+                                padding-top: 8px;
+                                padding-bottom: 8px;
+                                padding-left: 12px;
+                                padding-right: 12px;
+                                spacing: 10px;
+                                alignment: stretch;
+                                VerticalLayout {
+                                    padding-top: 2px;
+                                    alignment: start;
+                                    ErrIcon {
+                                        size: 16px;
+                                        icon-color: T.err;
+                                    }
+                                }
+                                VerticalLayout {
+                                    horizontal-stretch: 1;
+                                    Text {
+                                        text: S.err-t;
+                                        font-weight: 600;
+                                        wrap: word-wrap;
+                                        min-width: 0px;
+                                    }
+                                    Text {
+                                        text: S.err-m;
+                                        color: T.text2;
+                                        wrap: word-wrap;
+                                        min-width: 0px;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ================= журнал
+                    Rectangle {
+                        vertical-stretch: S.log-open ? 0 : 1;
+                        min-height: 0px;
+                    }
+                    VerticalLayout {
+                        vertical-stretch: S.log-open ? 1 : 0;
+                        min-height: S.log-open ? 180px : 37px;
+                        Rectangle { height: 1px; background: T.line; }
+                        HorizontalLayout {
+                            spacing: 8px;
+                            CHead {
+                                horizontal-stretch: 1;
+                                title: S.t("log.title");
+                                sum: S.log-sum;
+                                open: S.log-open;
+                                sum-font: T.mono;
+                                sum-size: 11px;
+                                sum-color: T.text3;
+                                toggled(v) => {
+                                    S.toggle-log(v);
+                                    if v {
+                                        root.reveal-log();
+                                    }
+                                }
+                            }
+                            if S.log-open: VerticalLayout {
+                                alignment: center;
+                                TBtn {
+                                    text: S.copy-label;
+                                    clicked => { S.copy-log(); }
+                                }
+                            }
+                        }
+                        if S.log-open: VerticalLayout {
+                            vertical-stretch: 1;
+                            padding-bottom: 12px;
+                            Rectangle {
+                                background: T.sunken;
+                                border-width: 1px;
+                                border-color: T.line;
+                                border-radius: 4px;
+                                clip: true;
+                                logv := Flickable {
+                                    x: 1px;
+                                    y: 1px;
+                                    width: parent.width - 2px;
+                                    height: parent.height - 2px;
+                                    content-height: log-lay.preferred-height;
+                                    content-width: self.width;
+property <bool> stick: true;                                    property <length> ch: log-lay.preferred-height;                                    changed ch => { if self.stick { self.content-y = min(0px, self.height - self.ch); } }                                    changed content-y => { self.stick = self.content-y <= self.height - self.ch + 24px; }                                    init => { self.content-y = min(0px, self.height - self.ch); }
+                                    log-lay := VerticalLayout {
+                                        width: logv.width;
+                                        padding-top: 8px;
+                                        padding-bottom: 8px;
+                                        padding-left: 10px;
+                                        padding-right: 10px;
+                                        for l in S.lines: Text {
+                                            text: l.text;
+                                            font-family: T.mono;
+                                            font-size: 11.5px;
+                                            wrap: char-wrap;
+                                            min-width: 0px;
+                                            color: l.level == 2 ? T.err : l.level == 1 ? T.text : T.text2;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ================= низ окна
+            Rectangle { height: 1px; background: T.line; }
+            HorizontalLayout {
+                height: 55px;
+                padding-top: 12px;
+                padding-bottom: 11px;
+                padding-left: 20px;
+                padding-right: 20px;
+                spacing: 8px;
+                Text {
+                    text: S.hint;
+                    font-size: 12px;
+                    color: S.hint-err ? T.err : T.text3;
+                    vertical-alignment: center;
+                    overflow: elide;
+                    min-width: 0px;
+                    horizontal-stretch: 1;
+                    TipArea { tip: S.hint; }
+                }
+                Btn {
+                    text: S.t("btn.folder");
+                    enabled: !S.folder-dis;
+                    clicked => { S.folder(); }
+                }
+                if S.pause-show: Btn {
+                    text: S.pause-text;
+                    enabled: !S.pause-dis;
+                    clicked => { S.pause(); }
+                }
+                Btn {
+                    text: S.main-text;
+                    primary: true;
+                    cancel: S.main-cancel;
+                    enabled: !S.main-dis;
+                    clicked => { S.main(); }
+                }
+            }
+        }
+    }
+
+    // ================= меню приложения (⋯)
+    app-pop := PopupWindow {
+        x: max(8px, dots.absolute-position.x + dots.width - 232px);
+        y: dots.absolute-position.y + dots.height + 4px;
+        close-policy: close-on-click-outside;
+        app-menu := ItemMenu {
+            width: 232px;
+            items: S.app-items;
+            init => { self.focus-keys(); }
+            escape => { app-pop.close(); }
+            act(id, i) => {
+                let r = S.app-act(id);
+                if r == "lang" {
+                    app-pop.close();
+                    lang-pop.show();
+                } else if r == "close" {
+                    app-pop.close();
+                }
+            }
+        }
+    }
+    lang-pop := PopupWindow {
+        x: max(8px, dots.absolute-position.x + dots.width - 232px);
+        y: dots.absolute-position.y + dots.height + 4px;
+        close-policy: close-on-click-outside;
+        lang-menu := ItemMenu {
+            width: 232px;
+            head: [];
+            items: S.lang-items;
+            list-max: root.height - dots.absolute-position.y - dots.height - 30px;
+            init => { self.focus-keys(); }
+            escape => { lang-pop.close(); }
+            act(id, i) => {
+                lang-pop.close();
+                S.lang-act(id);
+            }
+        }
+    }
+    // ================= дорожки озвучки
+    track-pop := PopupWindow {
+        x: max(8px, min(root.ax - 6px, root.width - 300px - 8px));
+        y: root.ay + root.ah + 4px;
+        close-policy: close-on-click-outside;
+        track-menu := ItemMenu {
+            width: 300px;
+            head: S.track-head;
+            items: S.track-items;
+            tail: S.track-tail;
+            foot: S.t("tm.foot");
+            list-max: max(120px, min(296px, root.height - root.ay - root.ah - 4px - 8px - (32px * 2 + 9px * 2 + 30px + 8px)));
+            init => { self.focus-keys(); }
+            escape => { track-pop.close(); }
+            act(id, i) => {
+                if S.track-click(id) {
+                    track-pop.close();
+                }
+            }
+        }
+    }
+    // ================= видео плейлиста
+    pl-pop := PopupWindow {
+        x: max(8px, min(root.ax - 6px, root.width - 420px - 8px));
+        y: root.ay + root.ah + 4px;
+        close-policy: close-on-click-outside;
+        pl-menu := ItemMenu {
+            hl: 0;
+            width: 420px;
+            head: S.pl-head;
+            items: S.pl-items;
+            foot: S.t("pl.foot");
+            list-max: max(120px, root.height - root.ay - root.ah - 4px - 8px - (32px + 9px + 30px + 8px));
+            init => { self.focus-keys(); }
+            escape => { pl-pop.close(); }
+            act(id, i) => { S.pl-click(id); }
+        }
+    }
+    // ================= субтитры (только чтение)
+    subs-pop := PopupWindow {
+        x: max(8px, min(root.ax - 6px, root.width - 380px - 8px));
+        y: root.ay + root.ah + 4px;
+        close-policy: close-on-click-outside;
+        MenuBox {
+            width: 380px;
+            height: subs-lay.preferred-height;
+            subs-lay := VerticalLayout {
+                padding-top: 10px;
+                padding-left: 12px;
+                padding-right: 12px;
+                padding-bottom: 12px;
+                spacing: 8px;
+                Text {
+                    text: S.subs-title;
+                    font-size: 12px;
+                    color: T.text3;
+                }
+                Flickable {
+                    height: min(240px, subs-grid.preferred-height);
+                    content-height: subs-grid.preferred-height;
+                    subs-grid := FlexboxLayout {
+                        flex-wrap: wrap;
+                        spacing-horizontal: 16px;
+                        for it in S.subs-items: HorizontalLayout {
+                            width: (356px - 16px) / 2;
+                            height: 24px;
+                            spacing: 6px;
+                            Rectangle {
+                                width: 12px;
+                                if it.on: Check { y: 6px; }
+                            }
+                            Text {
+                                text: it.name;
+                                font-size: 12px;
+                                font-weight: it.on ? 600 : 400;
+                                vertical-alignment: center;
+                                overflow: elide;
+                                min-width: 0px;
+                                horizontal-stretch: 1;
+                                TipArea { tip: it.tip; }
+                            }
+                        }
+                    }
+                }
+                Rectangle { height: 1px; background: T.line; }
+                Text {
+                    text: S.subs-foot;
+                    font-size: 12px;
+                    color: T.text2;
+                    wrap: word-wrap;
+                }
+            }
+        }
+    }
+    // ================= фрагмент
+    trim-pop := PopupWindow {
+        x: max(8px, min(root.ax + root.aw - 300px, root.width - 308px));
+        y: root.ay + root.ah + 4px + trim-box.height > root.height - 8px ? root.ay - trim-box.height - 4px : root.ay + root.ah + 4px;
+        close-policy: close-on-click-outside;
+        trim-box := MenuBox {
+            width: 300px;
+            height: trim-lay.preferred-height;
+            trim-lay := VerticalLayout {
+                padding: 12px;
+                spacing: 10px;
+                HorizontalLayout {
+                    spacing: 10px;
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: S.t("tr.start"); font-size: 12px; color: T.text2; }
+                        tr-s := TField {
+                            mono: true;
+                            text <=> S.tr-start;
+                            accepted => { if S.trim-apply(tr-s.text, tr-e.text) { trim-pop.close(); } }
+                            init => {
+                                self.focus-input();
+                                self.select-all();
+                            }
+                        }
+                    }
+                    VerticalLayout {
+                        spacing: 4px;
+                        Text { text: S.t("tr.end"); font-size: 12px; color: T.text2; }
+                        tr-e := TField {
+                            mono: true;
+                            placeholder: S.tr-ph;
+                            text <=> S.tr-end;
+                            accepted => { if S.trim-apply(tr-s.text, tr-e.text) { trim-pop.close(); } }
+                        }
+                    }
+                }
+                Text {
+                    text: S.tr-msg;
+                    font-size: 12px;
+                    color: S.tr-err ? T.err : T.text3;
+                    wrap: word-wrap;
+                    min-height: 16px;
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: end;
+                    if S.tr-has: TBtn {
+                        text: S.t("tr.all");
+                        clicked => {
+                            S.trim-all();
+                            trim-pop.close();
+                        }
+                    }
+                    Btn {
+                        h: 28px;
+                        text: S.t("tr.ok");
+                        clicked => { if S.trim-apply(tr-s.text, tr-e.text) { trim-pop.close(); } }
+                    }
+                }
+            }
+            FocusScope {
+                width: 0px;
+                height: 0px;
+                key-pressed(e) => {
+                    if e.text == Key.Escape { trim-pop.close(); return accept; }
+                    reject
+                }
+            }
+        }
+    }
+
+    // ================= окно «Расширение для браузера»
+    if S.ext-show: Rectangle {
+        background: #00000052;
+        TouchArea {
+            clicked => { S.ext-close(); }
+        }
+        Rectangle {
+            width: min(560px, parent.width - 48px);
+            height: min(ext-lay.preferred-height, parent.height - 48px);
+            background: T.surface;
+            border-width: 1px;
+            border-color: T.line-strong;
+            border-radius: 8px;
+            clip: true;
+            TouchArea { }
+            Flickable {
+                content-height: ext-lay.preferred-height;
+                ext-lay := VerticalLayout {
+                    padding-top: 16px;
+                    padding-left: 20px;
+                    padding-right: 20px;
+                    padding-bottom: 18px;
+                    spacing: 12px;
+                    HorizontalLayout {
+                        spacing: 8px;
+                        Text {
+                            text: S.t("ext.title");
+                            font-size: 15px;
+                            font-weight: 600;
+                            vertical-alignment: center;
+                            horizontal-stretch: 1;
+                        }
+                        TBtn {
+                            text: S.t("ext.close");
+                            clicked => { S.ext-close(); }
+                        }
+                    }
+                    Text {
+                        text: S.t("ext.lead");
+                        color: T.text2;
+                        wrap: word-wrap;
+                    }
+                    Rectangle {
+                        height: max(32px, stat-lay.preferred-height);
+                        border-width: 1px;
+                        border-color: T.line;
+                        border-radius: 4px;
+                        background: T.raised;
+                        stat-lay := HorizontalLayout {
+                            padding-top: 6px;
+                            padding-bottom: 6px;
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 10px;
+                            Rectangle {
+                                width: 8px;
+                                Rectangle {
+                                    width: 8px;
+                                    height: 8px;
+                                    border-radius: 4px;
+                                    background: S.ext-ok ? T.ok : T.text3;
+                                }
+                            }
+                            Text {
+                                text: S.ext-b;
+                                font-weight: 600;
+                                vertical-alignment: center;
+                                horizontal-stretch: 0;
+                            }
+                            Text {
+                                text: "· " + S.ext-span;
+                                color: T.text2;
+                                vertical-alignment: center;
+                                wrap: word-wrap;
+                                horizontal-stretch: 1;
+                                min-width: 0px;
+                            }
+                            if S.ext-connect-show: Btn {
+                                text: S.t("ext.connect");
+                                clicked => { S.ext-connect(); }
+                            }
+                        }
+                    }
+                    // шаг 1
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout { alignment: start; StepNum { n: "1"; } }
+                        VerticalLayout {
+                            spacing: 6px;
+                            horizontal-stretch: 1;
+                            Text { text: S.t("ext.s1"); wrap: word-wrap; }
+                            FlexboxLayout {
+                                flex-wrap: wrap;
+                                spacing-horizontal: 8px;
+                                spacing-vertical: 6px;
+                                cross-axis-alignment: center;
+                                Kbd { text: "chrome://extensions"; }
+                                TBtn {
+                                    text: S.copied == "chrome" ? S.t("log.copied") : S.t("ext.copy");
+                                    clicked => { S.ext-copy("chrome"); }
+                                }
+                                Kbd { text: "edge://extensions"; }
+                                TBtn {
+                                    text: S.copied == "edge" ? S.t("log.copied") : S.t("ext.copy");
+                                    clicked => { S.ext-copy("edge"); }
+                                }
+                            }
+                            Text {
+                                text: S.t("ext.s1sub");
+                                font-size: 12px;
+                                color: T.text3;
+                                wrap: word-wrap;
+                            }
+                        }
+                    }
+                    // шаг 2
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout { alignment: start; StepNum { n: "2"; } }
+                        Text { text: S.t("ext.s2"); wrap: word-wrap; horizontal-stretch: 1; }
+                    }
+                    // шаг 3
+                    HorizontalLayout {
+                        spacing: 8px;
+                        VerticalLayout { alignment: start; StepNum { n: "3"; } }
+                        VerticalLayout {
+                            spacing: 6px;
+                            horizontal-stretch: 1;
+                            Text { text: S.t("ext.s3"); wrap: word-wrap; }
+                            FlexboxLayout {
+                                flex-wrap: wrap;
+                                spacing-horizontal: 8px;
+                                spacing-vertical: 6px;
+                                cross-axis-alignment: center;
+                                alignment: stretch;
+                                Field {
+                                    horizontal-stretch: 1;
+                                    preferred-width: 200px;
+                                    mono: true;
+                                    text: S.ext-path;
+                                    tip: S.ext-path-tip;
+                                    changed width => { S.fit("extPath", self.width - 22px); }
+                                    init => { S.fit("extPath", self.width - 22px); }
+                                }
+                                Btn {
+                                    text: S.copied == "path" ? S.t("log.copied") : S.t("ext.copyPath");
+                                    clicked => { S.ext-copy("path"); }
+                                }
+                                Btn {
+                                    text: S.t("ext.openFolder");
+                                    clicked => { S.ext-open(); }
+                                }
+                            }
+                        }
+                    }
+                    Rectangle { height: 1px; background: T.line; }
+                    Text {
+                        text: S.t("ext.foot");
+                        font-size: 12px;
+                        color: T.text3;
+                        wrap: word-wrap;
+                    }
+                }
+            }
+        }
+    }
+
+    // ================= подсказка
+    if Tip.show && Tip.text != "": Rectangle {
+        x: max(4px, min(Tip.x, root.width - self.width - 4px));
+        y: Tip.y + self.height > root.height - 4px ? Tip.y - self.height - 30px : Tip.y;
+        width: min(420px, tip-t.preferred-width + 16px);
+        height: tip-t.preferred-height + 8px;
+        background: T.surface;
+        border-width: 1px;
+        border-color: T.line-strong;
+        border-radius: 4px;
+        drop-shadow-blur: 8px;
+        drop-shadow-color: #00000030;
+        tip-t := Text {
+            x: 8px;
+            y: 4px;
+            width: parent.width - 16px;
+            text: Tip.text;
+            font-size: 12px;
+            wrap: word-wrap;
+        }
+    }
+}

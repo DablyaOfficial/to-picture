@@ -37,7 +37,7 @@
 
 **Portable:** распакуйте [`ToPicture-Portable.zip`](https://github.com/DablyaOfficial/to-picture/releases/latest/download/ToPicture-Portable.zip) в любую папку и запустите `To Picture.exe`. Настройки хранятся рядом, в папке `data`, — можно носить на флешке.
 
-yt-dlp и ffmpeg уже внутри, ставить ничего не нужно. Windows 10 или 11, 64-бит. Движок окна WebView2 в Windows 11 уже есть, на Windows 10 установщик докачает его сам.
+yt-dlp и ffmpeg уже внутри, ставить ничего не нужно. Windows 10 или 11, 64-бит.
 
 **Языки:** English, 简体中文, Español, Português (Brasil), Deutsch, Français, 日本語, 한국어, Türkçe, Русский. Программа берёт язык Windows; поменять — в меню **⋯**.
 
@@ -87,15 +87,16 @@ H.264, если не уверены: такой файл открывается 
 
 ## Сборка из исходников
 
-Нужны Python 3.12+, [Inno Setup 6/7](https://jrsoftware.org/isdl.php), а также `yt-dlp.exe` и ffmpeg ([сборка yt-dlp](https://github.com/yt-dlp/FFmpeg-Builds/releases), `win64-gpl-shared`) в папке `installer/payload/bin`.
+Нужны [Rust](https://rustup.rs) с Visual Studio C++ Build Tools, [Inno Setup 6/7](https://jrsoftware.org/isdl.php), а также `yt-dlp.exe` и ffmpeg ([сборка yt-dlp](https://github.com/yt-dlp/FFmpeg-Builds/releases), `win64-gpl-shared`) в папке `installer/payload/bin`.
 
 ```bat
-pip install -r requirements.txt
-python ToPicture.pyw       :: запуск из исходников
-build_installer.bat        :: exe, установщик и portable zip — в installer\output
+cargo run -p topicture      :: запуск из исходников
+build_installer.bat         :: exe, установщик и portable zip — в installer\output
 ```
 
-Интерфейс — [`ui/index.html`](ui/index.html) (HTML/CSS в окне [pywebview](https://github.com/r0x0r/pywebview)), переводы — [`ui/locales/`](ui/locales), логика — [`ToPicture.pyw`](ToPicture.pyw), установщик — [`installer/ToPicture.iss`](installer/ToPicture.iss).
+Написано на Rust. Окно — [`crates/app`](crates/app) (нативный интерфейс на [Slint](https://slint.dev), без WebView), движок — [`crates/core`](crates/core), связь с расширением — [`crates/bridge`](crates/bridge), переводы — [`ui/locales/`](ui/locales), установщик — [`installer/ToPicture.iss`](installer/ToPicture.iss).
+
+[![Made with Slint](https://raw.githubusercontent.com/slint-ui/slint/master/logo/MadeWithSlint-logo-whitebg.png)](https://slint.dev)
 
 **Переводы:** каждый язык — один JSON-файл в `ui/locales/` (образец — `en.json`). Чтобы добавить язык, скопируйте `en.json`, переведите значения и пришлите pull request.
 

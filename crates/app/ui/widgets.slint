@@ -1,0 +1,489 @@
+// Кнопки, поля, выпадающие списки — повторяют .btn, .tbtn, .mbtn, .select, .menu из ui/index.html.
+import { T, Win, Tip, Measure } from "theme.slint";
+
+export struct Opt { v: string, l: string, h: string, mh: string, sep: bool }
+export struct SelData { opts: [Opt], value: string, label: string, hint: string, tip: string, dis: bool, idx: int, nseps: int }
+
+// TouchArea с подсказкой при наведении.
+export component TipArea inherits TouchArea {
+    in property <string> tip;
+    property <int> my-id;
+    init => {
+        self.my-id = Tip.next-id;
+        Tip.next-id += 1;
+    }
+    Timer {
+        interval: 650ms;
+        running: root.has-hover && root.tip != "" && !(Tip.show && Tip.owner == root.my-id) && !root.pressed;
+        triggered => {
+            Tip.text = root.tip;
+            Tip.x = root.absolute-position.x + root.mouse-x;
+            Tip.y = root.absolute-position.y + root.mouse-y + 22px;
+            Tip.owner = root.my-id;
+            Tip.show = true;
+        }
+    }
+    callback hover-changed(bool);
+    changed has-hover => {
+        if !self.has-hover && Tip.owner == self.my-id {
+            Tip.show = false;
+        }
+        self.hover-changed(self.has-hover);
+    }
+    changed pressed => {
+        if self.pressed {
+            Tip.show = false;
+        }
+    }
+}
+
+export component Chevron inherits Rectangle {
+    in property <bool> down;
+    in property <bool> small;
+    in property <brush> fg: T.text2;
+    width: small ? 10px : 12px;
+    Path {
+        y: (parent.height - self.height) / 2;
+        width: parent.width;
+        height: parent.width;
+        viewbox-width: 12;
+        viewbox-height: 12;
+        commands: root.down ? "M2.5 4.5 6 8l3.5-3.5" : "M4.5 2.5 8 6l-3.5 3.5";
+        stroke: root.fg;
+        stroke-width: root.small ? 1.4px : 1.3px;
+        fill: transparent;
+    }
+}
+
+export component Check inherits Path {
+    in property <length> size: 12px;
+    in property <length> thick: 1.5px;
+    width: size;
+    height: size;
+    viewbox-width: 12;
+    viewbox-height: 12;
+    commands: "M2.5 6.5 5 9l4.5-6";
+    stroke: T.text;
+    stroke-width: thick;
+    fill: transparent;
+}
+
+// .btn / .btn.primary / .btn.primary.cancel
+export component Btn inherits Rectangle {
+    horizontal-stretch: 0;
+    in property <string> text;
+    in property <bool> primary;
+    in property <bool> cancel;
+    in property <bool> enabled: true;
+    in property <string> tip;
+    in property <length> h: 32px;
+    callback clicked();
+    property <bool> acc: primary && !cancel;
+    // зависимость от text явная: иначе после смены языка ширина не пересчитывалась
+    min-width: max(primary ? 128px : 0px, max(lbl.preferred-width, Measure.text-w(root.text, 13px, primary ? 600 : 400)) + 30px);
+    preferred-width: self.min-width;
+    height: h;
+    border-radius: 4px;
+    border-width: 1px;
+    background: !enabled ? (primary ? T.sunken : transparent)
+        : acc ? (ta.pressed ? T.accent-pressed : ta.has-hover ? T.accent-hover : T.accent)
+        : ta.pressed ? T.pressed : ta.has-hover ? T.hover : T.raised;
+    border-color: !enabled ? T.line
+        : acc ? (ta.pressed ? T.accent-pressed : ta.has-hover ? T.accent-hover : T.accent)
+        : T.line-strong;
+    lbl := Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        font-weight: root.primary ? 600 : 400;
+        color: !root.enabled ? T.text3 : root.acc ? T.on-accent : T.text;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+    ta := TipArea {
+        tip: root.tip;
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// .tbtn — плоская кнопка 24 px
+export component TBtn inherits Rectangle {
+    horizontal-stretch: 0;
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <string> tip;
+    in property <bool> bold;
+    in property <color> fg: T.text;
+    in property <length> font-size: 12px;
+    callback clicked();
+    out property <bool> hovered: ta.has-hover;
+    min-width: max(lbl.preferred-width, Measure.text-w(root.text, root.font-size, root.bold ? 600 : 400)) + 16px;
+    preferred-width: self.min-width;
+    height: 24px;
+    border-radius: 4px;
+    background: !enabled ? transparent : ta.pressed ? T.pressed : ta.has-hover ? T.hover : transparent;
+    lbl := Text {
+        width: parent.width;
+        height: parent.height;
+        text: root.text;
+        font-size: root.font-size;
+        font-weight: root.bold ? 600 : 400;
+        color: root.enabled ? root.fg : T.text3;
+        vertical-alignment: center;
+        horizontal-alignment: center;
+    }
+    ta := TipArea {
+        tip: root.tip;
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// .mbtn — кнопка-меню внутри карточки превью (подпись + маленькая стрелка)
+export component MBtn inherits Rectangle {
+    horizontal-stretch: 0;
+    in property <string> text;
+    in property <bool> enabled: true;
+    in property <bool> plain;
+    in property <bool> bold;
+    in property <bool> open;
+    in property <string> tip;
+    callback clicked();
+    min-width: max(lay.preferred-width, Measure.text-w(root.text, 12px, root.bold ? 600 : 400) + (root.enabled ? 26px : 12px));
+    preferred-width: self.min-width;
+    height: 22px;
+    border-radius: 4px;
+    background: !enabled ? transparent : (ta.pressed || open) ? T.pressed : ta.has-hover ? T.hover : transparent;
+    lay := HorizontalLayout {
+        padding-left: 6px;
+        padding-right: 6px;
+        spacing: 4px;
+        alignment: start;
+        Text {
+            text: root.text;
+            font-size: 12px;
+            font-weight: root.bold ? 600 : 400;
+            color: root.plain ? T.text2 : T.text;
+            vertical-alignment: center;
+        }
+        if root.enabled: Chevron {
+            down: true;
+            small: true;
+        }
+    }
+    ta := TipArea {
+        tip: root.tip;
+        enabled: root.enabled;
+        clicked => { root.clicked(); }
+    }
+}
+
+// .field — поле только для чтения (путь к папке)
+export component Field inherits Rectangle {
+    in property <string> text;
+    in property <bool> empty;
+    in property <bool> mono;
+    in property <string> tip;
+    callback double-clicked();
+    height: 32px;
+    min-width: 0px;
+    preferred-width: 0px;
+    background: T.surface;
+    border-width: 1px;
+    border-color: T.line-strong;
+    border-radius: 4px;
+    clip: true;
+    Text {
+        x: 10px;
+        width: parent.width - 20px;
+        height: parent.height;
+        text: root.text;
+        color: root.empty ? T.text3 : T.text;
+        vertical-alignment: center;
+        overflow: elide;
+        font-family: root.mono ? T.mono : T.sans;
+        font-size: root.mono ? 12px : 13px;
+    }
+    TipArea {
+        tip: root.tip;
+        double-clicked => { root.double-clicked(); }
+    }
+}
+
+// Строка меню (.mi)
+export component MenuRow inherits Rectangle {
+    in property <string> label;
+    in property <string> font;
+    in property <string> hint;
+    in property <bool> sel;
+    in property <bool> hl;
+    in property <bool> check: true;
+    in property <bool> dis;
+    in property <bool> hint-right: true;
+    callback clicked();
+    callback hovered();
+    height: 32px;
+    border-radius: 4px;
+    background: hl ? T.hover : transparent;
+    min-width: lay.preferred-width + (root.label.character-count + root.hint.character-count) * 0px + (T.sans == "" ? 1px : 0px);
+    lay := HorizontalLayout {
+        padding-left: 6px;
+        padding-right: 10px;
+        spacing: 8px;
+        Rectangle {
+            width: 14px;
+            if root.sel && root.check: Check {
+                y: (parent.height - self.height) / 2;
+            }
+        }
+        Text {
+            text: root.label;
+            font-family: root.font != "" ? root.font : T.sans;
+            vertical-alignment: center;
+            color: root.dis ? T.text3 : T.text;
+            horizontal-stretch: 0;
+        }
+        if root.hint != "": Text {
+            text: root.hint;
+            font-size: 12px;
+            color: T.text3;
+            vertical-alignment: center;
+            horizontal-alignment: root.hint-right ? right : left;
+            horizontal-stretch: 1;
+            min-width: self.preferred-width + 16px;
+        }
+    }
+    ta := TouchArea {
+        clicked => { root.clicked(); }
+        moved => { root.hovered(); }
+        changed has-hover => {
+            if self.has-hover {
+                root.hovered();
+            }
+        }
+    }
+}
+
+export component MenuSep inherits Rectangle {
+    height: 9px;
+    Rectangle {
+        x: 2px;
+        width: parent.width - 4px;
+        height: 1px;
+        background: T.line;
+    }
+}
+
+// Рамка всплывающего меню
+export component MenuBox inherits Rectangle {
+    background: T.surface;
+    border-width: 1px;
+    border-color: T.line-strong;
+    border-radius: 6px;
+    drop-shadow-blur: 12px;
+    drop-shadow-color: T.dark ? #00000060 : #00000022;
+    drop-shadow-offset-y: 3px;
+}
+
+// .select — выпадающий список с меню (как makeSelect/showMenu)
+export component Select inherits Rectangle {
+    in property <SelData> data;
+    callback selected(string);
+    property <int> hl: -1;
+    property <int> n-items: data.opts.length;
+    property <length> menu-h: 8px + n-seps * 9px + (n-items - n-seps) * 32px;
+    property <int> n-seps: data.nseps;
+    property <bool> enabled: !data.dis;
+    height: 32px;
+    min-width: 0px;
+    preferred-width: 0px;
+    border-radius: 4px;
+    border-width: 1px;
+    border-color: !enabled ? T.line : fs.has-focus ? T.focus : T.line-strong;
+    background: !enabled ? T.sunken : ta.pressed ? T.pressed : ta.has-hover ? T.hover : T.surface;
+    HorizontalLayout {
+        padding-left: 10px;
+        padding-right: 8px;
+        spacing: 8px;
+        Text {
+            text: root.data.label;
+            vertical-alignment: center;
+            color: root.enabled ? T.text : T.text3;
+            horizontal-stretch: 0;
+            min-width: self.preferred-width;
+        }
+        Text {
+            text: root.data.hint;
+            font-size: 12px;
+            color: T.text3;
+            vertical-alignment: center;
+            overflow: elide;
+            horizontal-stretch: 1;
+            min-width: 0px;
+        }
+        Chevron {
+            down: true;
+        }
+    }
+    pure function adv(i: int, d: int) -> int {
+        return i >= 0 && i < root.data.opts.length && root.data.opts[i].sep ? i + d : i;
+    }
+    function pick(i: int) {
+        if i >= 0 && i < root.data.opts.length {
+            root.selected(root.data.opts[i].v);
+        }
+    }
+    function step(d: int) {
+        // соседний вариант, разделители пропускаются
+        root.pick(root.adv(root.data.idx + d, d));
+    }
+    ta := TipArea {
+        tip: root.data.tip;
+        enabled: root.enabled;
+        clicked => {
+            fs.focus();
+            root.hl = root.data.idx;
+            menu.show();
+        }
+    }
+    fs := FocusScope {
+        enabled: root.enabled;
+        key-pressed(e) => {
+            if e.text == Key.F4 || (e.modifiers.alt && e.text == Key.DownArrow) {
+                root.hl = root.data.idx;
+                menu.show();
+                return accept;
+            }
+            if e.text == Key.DownArrow {
+                root.step(1);
+                return accept;
+            }
+            if e.text == Key.UpArrow {
+                root.step(-1);
+                return accept;
+            }
+            reject
+        }
+    }
+    menu := PopupWindow {
+        x: min(0px, Win.w - root.absolute-position.x - box.width - 8px);
+        y: (root.menu-h <= Win.h - root.absolute-position.y - root.height - 8px || root.absolute-position.y < root.menu-h)
+            ? root.height + 4px : -root.menu-h - 4px;
+        close-policy: close-on-click-outside;
+        box := MenuBox {
+            width: max(root.width, col.preferred-width);
+            height: col.preferred-height;
+            col := VerticalLayout {
+                padding: 4px;
+                for o[i] in root.data.opts: Rectangle {
+                    height: o.sep ? 9px : 32px;
+                    min-width: o.sep ? 0px : mr.min-width;
+                    if o.sep: MenuSep {
+                        width: parent.width;
+                    }
+                    mr := MenuRow {
+                        visible: !o.sep;
+                        width: parent.width;
+                        label: o.l;
+                        hint: o.mh != "" ? o.mh : o.h;
+                        sel: o.v == root.data.value;
+                        hl: i == root.hl;
+                        hovered => { root.hl = i; }
+                        clicked => {
+                            root.selected(o.v);
+                            menu.close();
+                        }
+                    }
+                }
+            }
+            FocusScope {
+                width: 0px;
+                height: 0px;
+                init => { self.focus(); }
+                key-pressed(e) => {
+                    if e.text == Key.Escape || e.text == Key.Tab {
+                        menu.close();
+                        fs.focus();
+                        return accept;
+                    }
+                    if e.text == Key.DownArrow {
+                        if root.adv(root.hl + 1, 1) < root.data.opts.length { root.hl = root.adv(root.hl + 1, 1); }
+                        return accept;
+                    }
+                    if e.text == Key.UpArrow {
+                        if root.adv(root.hl - 1, -1) >= 0 { root.hl = root.adv(root.hl - 1, -1); }
+                        return accept;
+                    }
+                    if e.text == Key.Return || e.text == " " {
+                        if root.hl >= 0 && root.hl < root.data.opts.length {
+                            root.selected(root.data.opts[root.hl].v);
+                        }
+                        menu.close();
+                        fs.focus();
+                        return accept;
+                    }
+                    accept
+                }
+            }
+        }
+    }
+}
+
+// .tfield — однострочное поле ввода
+export component TField inherits Rectangle {
+    in-out property <string> text <=> ti.text;
+    in property <string> placeholder;
+    in property <bool> mono;
+    in property <bool> enabled: true;
+    out property <bool> has-focus: ti.has-focus;
+    callback edited(string);
+    callback accepted();
+    callback focus-lost();
+    public function focus-input() { ti.focus(); }
+    callback focus-changed(bool);
+    public function select-all() { ti.select-all(); }
+    height: 32px;
+    min-width: 0px;
+    preferred-width: 0px;
+    border-radius: 4px;
+    border-width: ti.has-focus ? 2px : 1px;
+    border-color: !enabled ? T.line : ti.has-focus ? T.focus : ta.has-hover ? T.text3 : T.line-strong;
+    background: enabled ? T.surface : T.sunken;
+    clip: true;
+    ta := TouchArea {
+        mouse-cursor: MouseCursor.text;
+    }
+    if ti.text == "": Text {
+        x: 10px;
+        width: parent.width - 20px;
+        overflow: elide;
+        height: parent.height;
+        text: root.placeholder;
+        color: T.text3;
+        vertical-alignment: center;
+        font-family: root.mono ? T.mono : T.sans;
+        font-size: root.mono ? 12px : 13px;
+    }
+    ti := TextInput {
+        x: 10px;
+        width: parent.width - 20px;
+        height: parent.height;
+        vertical-alignment: center;
+        enabled: root.enabled;
+        color: root.enabled ? T.text : T.text3;
+        selection-background-color: T.dark ? #4D6E99 : #B8D2F0;
+        selection-foreground-color: T.text;
+        font-family: root.mono ? T.mono : T.sans;
+        font-size: root.mono ? 12px : 13px;
+        single-line: true;
+        edited => { root.edited(self.text); }
+        accepted => { root.accepted(); }
+        changed has-focus => {
+            root.focus-changed(self.has-focus);
+            if !self.has-focus {
+                root.focus-lost();
+            }
+        }
+    }
+}

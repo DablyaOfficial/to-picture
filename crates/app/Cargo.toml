@@ -4,15 +4,22 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "topicture"
+path = "src/main.rs"
+
 [dependencies]
 arboard = "3.7.0"
-image = "0.25.10"
+image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "webp", "gif", "bmp"] }
 rfd = "0.18.0"
 serde_json = "1.0.154"
-slint = "1.19.0"
-topicture-bridge = { version = "2.0.0", path = "../bridge" }
-topicture-core = { version = "2.0.0", path = "../core" }
-windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell"] }
+slint = { version = "1.19.0", features = ["raw-window-handle-06", "renderer-skia"] }
+raw-window-handle = "0.6.2"
+skrifa = "0.44.0"
+regex = "1.13.1"
+topicture-bridge = { path = "../bridge" }
+topicture-core = { path = "../core" }
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Graphics_Dwm", "Win32_Graphics_Gdi", "Win32_UI_WindowsAndMessaging", "Win32_UI_Shell", "Win32_System_LibraryLoader", "Win32_System_Registry", "Win32_UI_Input_KeyboardAndMouse"] }
 
 [build-dependencies]
 slint-build = "1.19.0"

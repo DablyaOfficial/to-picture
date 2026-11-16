@@ -363,7 +363,14 @@ impl Engine {
     pub fn tr(&self, key: &str, params: &[(&str, &str)]) -> String { i18n::tr(&self.sh.lang(), key, params) }
 
     /// Вызывать при закрытии окна: отменяет очередь.
-    pub fn shutdown(&self) { self.cancel(); }
+    pub fn shutdown(&self) {
+        self.cancel();
+        // дать очереди убрать временную папку и недописанный файл (после этого процесс завершается сразу)
+        let t0 = std::time::Instant::now();
+        while self.is_running() && t0.elapsed() < Duration::from_secs(3) {
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
 }
 
 /// «yt-dlp 2025.01.01 · ffmpeg 7.1» для журнала.
