@@ -1,0 +1,15 @@
+[workspace]
+resolver = "3"
+members = ["crates/core", "crates/bridge", "crates/app"]
+
+[workspace.package]
+version = "2.0.0"
+edition = "2024"
+license = "MIT"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 4
+strip = true
+panic = "unwind"

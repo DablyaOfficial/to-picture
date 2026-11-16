@@ -11,3 +11,6 @@ __pycache__/
 data/
 portable.txt
 !installer/portable.txt
+
+# Rust
+target/
