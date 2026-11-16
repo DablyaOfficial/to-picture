@@ -3,7 +3,6 @@
 ;
 ; Installs per user (%LOCALAPPDATA%\Programs\To Picture) without admin rights, so the bundled
 ; yt-dlp.exe can update itself. Ships its own yt-dlp.exe and ffmpeg/ffprobe in the bin folder.
-; Downloads and installs Microsoft WebView2 (the window engine) if it is missing.
 ; The wizard language follows the Windows UI language.
 
 #define AppName "To Picture"
@@ -40,7 +39,7 @@ Compression=lzma2/ultra64
 SolidCompression=yes
 LZMANumBlockThreads=4
 WizardStyle=modern
-; Restart Manager не умеет закрывать окно pywebview — программу закрывает PrepareToInstall (см. [Code])
+; Restart Manager не всегда закрывает программу — программу закрывает PrepareToInstall (см. [Code])
 CloseApplications=no
 RestartApplications=no
 ShowLanguageDialog=auto
@@ -58,46 +57,6 @@ Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
 Name: "tr"; MessagesFile: "compiler:Languages\Turkish.isl"
 
 [CustomMessages]
-en.WV2Downloading=Downloading Microsoft WebView2…
-en.WV2InstallFailed=Microsoft WebView2 could not be installed. The app may not start — install WebView2 Runtime from Microsoft and run it again.
-en.WV2DownloadFailed=Microsoft WebView2 could not be downloaded:
-en.WV2CheckNet=Check your internet connection or install WebView2 Runtime manually.
-ru.WV2Downloading=Скачивание компонента Microsoft WebView2…
-ru.WV2InstallFailed=Не удалось установить Microsoft WebView2. Программа может не запуститься — установите WebView2 Runtime с сайта Microsoft и запустите её снова.
-ru.WV2DownloadFailed=Не удалось скачать Microsoft WebView2:
-ru.WV2CheckNet=Проверьте интернет или установите WebView2 Runtime вручную.
-zh.WV2Downloading=正在下载 Microsoft WebView2…
-zh.WV2InstallFailed=无法安装 Microsoft WebView2，程序可能无法启动。请从 Microsoft 网站安装 WebView2 Runtime 后重新运行。
-zh.WV2DownloadFailed=无法下载 Microsoft WebView2：
-zh.WV2CheckNet=请检查网络，或手动安装 WebView2 Runtime。
-ja.WV2Downloading=Microsoft WebView2 をダウンロード中…
-ja.WV2InstallFailed=Microsoft WebView2 をインストールできませんでした。アプリが起動しない場合は、Microsoft のサイトから WebView2 Runtime をインストールしてからもう一度実行してください。
-ja.WV2DownloadFailed=Microsoft WebView2 をダウンロードできませんでした：
-ja.WV2CheckNet=インターネット接続を確認するか、WebView2 Runtime を手動でインストールしてください。
-ko.WV2Downloading=Microsoft WebView2 다운로드 중…
-ko.WV2InstallFailed=Microsoft WebView2를 설치하지 못했습니다. 프로그램이 실행되지 않을 수 있습니다. Microsoft 웹사이트에서 WebView2 Runtime을 설치한 뒤 다시 실행하세요.
-ko.WV2DownloadFailed=Microsoft WebView2를 다운로드하지 못했습니다:
-ko.WV2CheckNet=인터넷 연결을 확인하거나 WebView2 Runtime을 직접 설치하세요.
-es.WV2Downloading=Descargando Microsoft WebView2…
-es.WV2InstallFailed=No se pudo instalar Microsoft WebView2. Puede que la aplicación no se inicie: instala WebView2 Runtime desde el sitio de Microsoft y vuelve a ejecutarla.
-es.WV2DownloadFailed=No se pudo descargar Microsoft WebView2:
-es.WV2CheckNet=Comprueba la conexión a internet o instala WebView2 Runtime manualmente.
-pt.WV2Downloading=Baixando o Microsoft WebView2…
-pt.WV2InstallFailed=Não foi possível instalar o Microsoft WebView2. O aplicativo pode não abrir — instale o WebView2 Runtime pelo site da Microsoft e execute-o de novo.
-pt.WV2DownloadFailed=Não foi possível baixar o Microsoft WebView2:
-pt.WV2CheckNet=Verifique a internet ou instale o WebView2 Runtime manualmente.
-de.WV2Downloading=Microsoft WebView2 wird heruntergeladen…
-de.WV2InstallFailed=Microsoft WebView2 konnte nicht installiert werden. Die App startet eventuell nicht — installieren Sie WebView2 Runtime von Microsoft und starten Sie sie erneut.
-de.WV2DownloadFailed=Microsoft WebView2 konnte nicht heruntergeladen werden:
-de.WV2CheckNet=Prüfen Sie die Internetverbindung oder installieren Sie WebView2 Runtime manuell.
-fr.WV2Downloading=Téléchargement de Microsoft WebView2…
-fr.WV2InstallFailed=Impossible d’installer Microsoft WebView2. L’application risque de ne pas démarrer — installez WebView2 Runtime depuis le site de Microsoft puis relancez-la.
-fr.WV2DownloadFailed=Impossible de télécharger Microsoft WebView2 :
-fr.WV2CheckNet=Vérifiez la connexion Internet ou installez WebView2 Runtime manuellement.
-tr.WV2Downloading=Microsoft WebView2 indiriliyor…
-tr.WV2InstallFailed=Microsoft WebView2 yüklenemedi. Uygulama açılmayabilir — Microsoft sitesinden WebView2 Runtime yükleyip yeniden çalıştırın.
-tr.WV2DownloadFailed=Microsoft WebView2 indirilemedi:
-tr.WV2CheckNet=İnternet bağlantısını kontrol edin veya WebView2 Runtime’ı elle yükleyin.
 
 en.AppRunning=To Picture is running. Close it and continue the installation?
 en.AppRunningAbort=Close To Picture and run the installer again.
@@ -160,31 +119,7 @@ Filename: "{app}\{#AppExe}"; Parameters: "--unregister-extension"; Flags: runhid
 Type: filesandordirs; Name: "{app}\bin"
 
 [Code]
-const
-  WV2Guid = '{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}';
-  WV2Url = 'https://go.microsoft.com/fwlink/p/?LinkId=2124703';
-
-var
-  DownloadPage: TDownloadWizardPage;
-
-function WV2Version(Root: Integer; Key: String): String;
-begin
-  if not RegQueryStringValue(Root, Key, 'pv', Result) then Result := '';
-end;
-
-function WebView2Installed: Boolean;
-var
-  V: String;
-begin
-  V := WV2Version(HKLM, 'SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\' + WV2Guid);
-  if (V = '') or (V = '0.0.0.0') then
-    V := WV2Version(HKLM, 'SOFTWARE\Microsoft\EdgeUpdate\Clients\' + WV2Guid);
-  if (V = '') or (V = '0.0.0.0') then
-    V := WV2Version(HKCU, 'Software\Microsoft\EdgeUpdate\Clients\' + WV2Guid);
-  Result := (V <> '') and (V <> '0.0.0.0');
-end;
-
-// To Picture из папки установки: окно pywebview не закрывается через Restart Manager, а процесс-загрузчик
+// To Picture из папки установки: окно не всегда закрывается через Restart Manager, а процесс-загрузчик
 // без окна может остаться после зависания — тогда exe нельзя заменить («Отказано в доступе»).
 // Поэтому перед установкой и удалением спрашиваем и закрываем программу сами.
 function RunPS(Cmd: String): Integer;
@@ -235,35 +170,4 @@ function InitializeUninstall(): Boolean;
 begin
   KillRunning(ExpandConstant('{app}'));
   Result := True;
-end;
-
-procedure InitializeWizard;
-begin
-  DownloadPage := CreateDownloadPage(SetupMessage(msgWizardPreparing), CustomMessage('WV2Downloading'), nil);
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-var
-  Code: Integer;
-begin
-  Result := True;
-  if (CurPageID = wpReady) and not WebView2Installed then
-  begin
-    DownloadPage.Clear;
-    DownloadPage.Add(WV2Url, 'MicrosoftEdgeWebview2Setup.exe', '');
-    DownloadPage.Show;
-    try
-      try
-        DownloadPage.Download;
-        if not Exec(ExpandConstant('{tmp}\MicrosoftEdgeWebview2Setup.exe'), '/silent /install', '',
-                    SW_HIDE, ewWaitUntilTerminated, Code) or not WebView2Installed then
-          MsgBox(CustomMessage('WV2InstallFailed'), mbError, MB_OK);
-      except
-        MsgBox(CustomMessage('WV2DownloadFailed') + ' ' + GetExceptionMessage + #13#10 +
-               CustomMessage('WV2CheckNet'), mbError, MB_OK);
-      end;
-    finally
-      DownloadPage.Hide;
-    end;
-  end;
 end;

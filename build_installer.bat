@@ -1,21 +1,17 @@
 @echo off
 chcp 65001 >nul
-rem Собирает "To Picture.exe", установщик и портативную версию в installer\output
-rem Нужны: pip install pyinstaller pywebview  +  Inno Setup 6 или 7 (https://jrsoftware.org/isdl.php)
+rem Собирает "To Picture.exe" (Rust), установщик и портативную версию в installer\output
+rem Нужны: Rust (https://rustup.rs) + Visual Studio Build Tools (C++)  +  Inno Setup 6 или 7 (https://jrsoftware.org/isdl.php)
+rem yt-dlp.exe и ffmpeg (сборка win64-gpl-shared) должны лежать в installer\payload\bin
 cd /d "%~dp0"
 
-for /f "tokens=2 delims==" %%v in ('findstr /b "APP_VERSION" ToPicture.pyw') do set VER=%%~v
+for /f "tokens=2 delims==" %%v in ('findstr /b /c:"version = " Cargo.toml') do if not defined VER set VER=%%~v
 set VER=%VER: =%
 set VER=%VER:"=%
 echo Версия: %VER%
 
-copy /y ToPicture.pyw "%TEMP%\ToPicture_main.py" >nul
-pyinstaller --noconfirm --onefile --windowed --name "To Picture" --icon "%~dp0icon.ico" ^
-  --add-data "%~dp0ui;ui" --add-data "%~dp0icon.ico;." ^
-  --distpath "%~dp0installer\payload" --workpath "%TEMP%\topicture_build" --specpath "%TEMP%\topicture_build" ^
-  --exclude-module tkinter --exclude-module PIL --exclude-module numpy ^
-  "%TEMP%\ToPicture_main.py" || goto :fail
-del "%TEMP%\ToPicture_main.py"
+cargo build --release -p topicture || goto :fail
+copy /y "target\release\topicture.exe" "installer\payload\To Picture.exe" >nul || goto :fail
 
 set ISCC=
 for %%p in ("%LOCALAPPDATA%\Programs\Inno Setup 7\ISCC.exe" "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" ^

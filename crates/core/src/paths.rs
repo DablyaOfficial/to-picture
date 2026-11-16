@@ -12,10 +12,12 @@ pub fn install_dir() -> &'static Path {
         }
         let exe = std::env::current_exe().ok().and_then(|p| p.canonicalize().ok()).unwrap_or_default();
         let dir = exe.parent().map(Path::to_path_buf).unwrap_or_default();
-        // target\debug\topicture.exe -> корень репозитория
-        if dir.parent().and_then(|p| p.file_name()).is_some_and(|n| n == "target") {
-            if let Some(root) = dir.parent().and_then(Path::parent) {
-                return strip_unc(root);
+        // target\debug\topicture.exe, target\<свой каталог>\debug\examples\x.exe -> корень репозитория
+        for anc in dir.ancestors().skip(1).take(4) {
+            if anc.file_name().is_some_and(|n| n == "target") {
+                if let Some(root) = anc.parent().filter(|r| r.join("Cargo.toml").is_file()) {
+                    return strip_unc(root);
+                }
             }
         }
         strip_unc(&dir)
@@ -53,7 +55,7 @@ pub fn data_dir() -> PathBuf {
 }
 
 pub fn appdata() -> PathBuf {
-    std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(|| home())
+    std::env::var_os("APPDATA").map(PathBuf::from).unwrap_or_else(home)
 }
 
 pub fn home() -> PathBuf {
