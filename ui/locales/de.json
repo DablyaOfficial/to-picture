@@ -226,7 +226,7 @@
  "links.placeholder": "Link einfügen — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
  "pv.audioOnly": "nur Ton",
  "py.audioOnly": "Hier gibt es kein Video — der Ton wird gespeichert",
- "py.err.bot": "YouTube möchte bestätigt haben, dass Sie kein Bot sind. Später erneut versuchen.",
+ "py.err.bot": "YouTube hält die Anfrage für einen Bot – das passiert oft mit VPN. Senden Sie den Link mit der Browser-Erweiterung aus einem Browser, in dem Sie bei YouTube angemeldet sind, oder aktivieren Sie „Bei Websites anmelden“.",
  "py.err.login": "Diese Website zeigt das Video nur nach Anmeldung. Senden Sie den Link mit der Browser-Erweiterung oder aktivieren Sie „Bei Websites anmelden“.",
  "py.err.noVideo": "In diesem Beitrag gibt es kein Video.",
  "py.err.noFormat": "Die Website bietet für dieses Video kein ladbares Format an.",

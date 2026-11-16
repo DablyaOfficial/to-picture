@@ -231,7 +231,7 @@
  "links.placeholder": "Collez un lien — YouTube, Dailymotion, TikTok, Twitch, Instagram…",
  "pv.audioOnly": "audio seulement",
  "py.audioOnly": "Pas de vidéo ici — enregistrement du son",
- "py.err.bot": "YouTube demande de confirmer que vous n’êtes pas un robot. Réessayez plus tard.",
+ "py.err.bot": "YouTube a pris la requête pour un robot — cela arrive souvent avec un VPN. Envoyez le lien avec l’extension depuis un navigateur connecté à YouTube ou activez « Connexion aux sites ».",
  "py.err.login": "Ce site ne montre la vidéo qu’après connexion. Envoyez le lien avec l’extension de navigateur ou activez « Connexion aux sites ».",
  "py.err.noVideo": "Cette publication ne contient pas de vidéo.",
  "py.err.noFormat": "Le site ne propose pas de format téléchargeable pour cette vidéo.",

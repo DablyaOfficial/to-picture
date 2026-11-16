@@ -431,6 +431,25 @@ export component Select inherits Rectangle {
 }
 
 // .tfield — однострочное поле ввода
+/// Ctrl+V/C/X/A в кириллической раскладке. Slint узнаёт эти сочетания только по латинской букве,
+/// а в русской раскладке приходит «м», «с», «ч», «ф» — вставка и копирование в полях не работали.
+/// Обёртка вокруг TextInput: перехватывает сочетание раньше поля и вызывает его действие.
+export component CyrKeys inherits FocusScope {
+    callback act(string);
+    focus-on-click: false;
+    focus-on-tab-navigation: false;
+    capture-key-pressed(e) => {
+        if !e.modifiers.control || e.modifiers.alt || e.modifiers.meta {
+            return reject;
+        }
+        if e.text == "м" || e.text == "М" { root.act("v"); return accept; }
+        if e.text == "с" || e.text == "С" { root.act("c"); return accept; }
+        if e.text == "ч" || e.text == "Ч" { root.act("x"); return accept; }
+        if e.text == "ф" || e.text == "Ф" { root.act("a"); return accept; }
+        reject
+    }
+}
+
 export component TField inherits Rectangle {
     in-out property <string> text <=> ti.text;
     in property <string> placeholder;
@@ -465,24 +484,32 @@ export component TField inherits Rectangle {
         font-family: root.mono ? T.mono : T.sans;
         font-size: root.mono ? 12px : 13px;
     }
-    ti := TextInput {
-        x: 10px;
-        width: parent.width - 20px;
-        height: parent.height;
-        vertical-alignment: center;
-        enabled: root.enabled;
-        color: root.enabled ? T.text : T.text3;
-        selection-background-color: T.dark ? #4D6E99 : #B8D2F0;
-        selection-foreground-color: T.text;
-        font-family: root.mono ? T.mono : T.sans;
-        font-size: root.mono ? 12px : 13px;
-        single-line: true;
-        edited => { root.edited(self.text); }
-        accepted => { root.accepted(); }
-        changed has-focus => {
-            root.focus-changed(self.has-focus);
-            if !self.has-focus {
-                root.focus-lost();
+    CyrKeys {
+        act(k) => {
+            if k == "v" { ti.paste(); }
+            if k == "c" { ti.copy(); }
+            if k == "x" { ti.cut(); }
+            if k == "a" { ti.select-all(); }
+        }
+        ti := TextInput {
+            x: 10px;
+            width: parent.width - 20px;
+            height: parent.height;
+            vertical-alignment: center;
+            enabled: root.enabled;
+            color: root.enabled ? T.text : T.text3;
+            selection-background-color: T.dark ? #4D6E99 : #B8D2F0;
+            selection-foreground-color: T.text;
+            font-family: root.mono ? T.mono : T.sans;
+            font-size: root.mono ? 12px : 13px;
+            single-line: true;
+            edited => { root.edited(self.text); }
+            accepted => { root.accepted(); }
+            changed has-focus => {
+                root.focus-changed(self.has-focus);
+                if !self.has-focus {
+                    root.focus-lost();
+                }
             }
         }
     }

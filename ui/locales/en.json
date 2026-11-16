@@ -226,7 +226,7 @@
  "links.placeholder": "Paste a link — YouTube, VK, TikTok, Twitch, Dailymotion, Rutube…",
  "pv.audioOnly": "audio only",
  "py.audioOnly": "No video here — saving the audio",
- "py.err.bot": "YouTube asked to confirm you're not a bot. Try again later.",
+ "py.err.bot": "YouTube took the request for a bot — this often happens with a VPN. Send the link with the browser extension from a browser where you're signed in to YouTube, or turn on “Sign in to sites” in Settings.",
  "py.err.login": "This site shows the video only after you sign in. Send the link with the browser extension or turn on “Sign in to sites” in Settings.",
  "py.err.noVideo": "There's no video in this post.",
  "py.err.noFormat": "The site didn't offer a downloadable format for this video.",

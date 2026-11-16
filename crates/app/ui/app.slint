@@ -2,7 +2,7 @@
 // Вся логика — в Rust (src/app.rs): он считает подписи, видимость строк и раскладку сетки параметров,
 // здесь только вёрстка и передача действий наружу через глобальный S.
 import { T, Win, Tip, Measure } from "theme.slint";
-import { Opt, SelData, TipArea, Chevron, Check, Btn, TBtn, MBtn, Field, MenuRow, MenuSep, MenuBox, Select, TField } from "widgets.slint";
+import { Opt, SelData, TipArea, Chevron, Check, Btn, TBtn, MBtn, Field, MenuRow, MenuSep, MenuBox, Select, TField, CyrKeys } from "widgets.slint";
 import { ScrollView, Palette } from "std-widgets.slint";
 
 export { T, Win, Tip, Measure, Opt, SelData }
@@ -965,6 +965,13 @@ export component AppWindow inherits Window {
                                             font-size: 12px;
                                             vertical-alignment: center;
                                         }
+                                        CyrKeys {
+                                        act(k) => {
+                                            if k == "v" { ti.paste(); }
+                                            if k == "c" { ti.copy(); }
+                                            if k == "x" { ti.cut(); }
+                                            if k == "a" { ti.select-all(); }
+                                        }
                                         ti := TextInput {
                                             x: 10px;
                                             y: 6px;
@@ -994,6 +1001,7 @@ export component AppWindow inherits Window {
                                                     fl.content-x = fl.width - p.x - 30px;
                                                 }
                                             }
+                                        }
                                         }
                                     }
                                     probe := Text {
