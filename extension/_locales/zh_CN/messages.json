@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "把页面上的视频发送到 To Picture,应用会把它下载为随处可播放的文件。"
+ },
+ "actionTitle": {
+  "message": "发送到 To Picture"
+ },
+ "menuLink": {
+  "message": "用 To Picture 下载链接"
+ },
+ "menuMedia": {
+  "message": "用 To Picture 下载此视频"
+ },
+ "menuPage": {
+  "message": "用 To Picture 下载页面视频"
+ },
+ "notVideoPage": {
+  "message": "此页面没有视频链接"
+ },
+ "errNoApp": {
+  "message": "To Picture 没有响应"
+ },
+ "sent": {
+  "message": "已发送到 To Picture"
+ },
+ "sentLaunched": {
+  "message": "正在打开 To Picture…"
+ },
+ "helpTitle": {
+  "message": "To Picture 未连接"
+ },
+ "helpLead": {
+  "message": "扩展会把链接发送到 To Picture 应用,但应用没有响应。"
+ },
+ "helpStep1": {
+  "message": "请安装 To Picture 1.0 或更新版本:"
+ },
+ "helpDownload": {
+  "message": "下载"
+ },
+ "helpStep2": {
+  "message": "在安装程序中保持勾选“浏览器扩展”。"
+ },
+ "helpStep3": {
+  "message": "便携版:在 To Picture 中打开 ⋯ → 浏览器扩展 → 连接。"
+ }
+}

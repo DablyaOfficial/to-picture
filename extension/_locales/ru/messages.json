@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "Отправляет видео со страницы в To Picture — программа скачает его файлом, который открывается везде."
+ },
+ "actionTitle": {
+  "message": "Отправить в To Picture"
+ },
+ "menuLink": {
+  "message": "Скачать ссылку в To Picture"
+ },
+ "menuMedia": {
+  "message": "Скачать это видео в To Picture"
+ },
+ "menuPage": {
+  "message": "Скачать видео со страницы в To Picture"
+ },
+ "notVideoPage": {
+  "message": "На этой странице нет ссылки на видео"
+ },
+ "errNoApp": {
+  "message": "To Picture не ответила"
+ },
+ "sent": {
+  "message": "Отправлено в To Picture"
+ },
+ "sentLaunched": {
+  "message": "Открываю To Picture…"
+ },
+ "helpTitle": {
+  "message": "To Picture не подключена"
+ },
+ "helpLead": {
+  "message": "Расширение отправляет ссылки в программу To Picture, но программа не ответила."
+ },
+ "helpStep1": {
+  "message": "Установите To Picture 1.0 или новее:"
+ },
+ "helpDownload": {
+  "message": "скачать"
+ },
+ "helpStep2": {
+  "message": "В установщике оставьте галочку «Расширение для браузера»."
+ },
+ "helpStep3": {
+  "message": "Портативная версия: в To Picture откройте ⋯ → Расширение для браузера → Подключить."
+ }
+}

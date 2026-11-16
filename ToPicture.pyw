@@ -10,6 +10,7 @@ yt-dlp и ffmpeg берутся из папки bin рядом с програм
 import ctypes
 import json
 import os
+import queue
 import re
 import shutil
 import subprocess
@@ -23,7 +24,7 @@ from pathlib import Path
 import webview
 
 APP = "To Picture"
-APP_VERSION = "1.8.0"
+APP_VERSION = "1.0.0"
 FROZEN = getattr(sys, "frozen", False)
 # в собранном exe файлы интерфейса лежат во временной папке PyInstaller (sys._MEIPASS)
 HERE = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
@@ -38,6 +39,8 @@ APPDATA = Path(os.environ.get("APPDATA", Path.home()))
 # а в системе (AppData, реестр) программа ничего не оставляет
 PORTABLE = (INSTALL_DIR / "portable.txt").exists()
 DATA_DIR = INSTALL_DIR / "data" if PORTABLE else APPDATA / "ToPicture"
+if os.environ.get("TOPICTURE_DATA"):  # для тестов: отдельная папка данных
+    DATA_DIR = Path(os.environ["TOPICTURE_DATA"])
 CONFIG = DATA_DIR / "settings.json"
 STATE = DATA_DIR / "state.json"
 OLD_CONFIG = DATA_DIR / "_none_" if PORTABLE else APPDATA / "YtdlCubase" / "settings.json"
@@ -65,10 +68,29 @@ DEFAULTS = {
     "subs": "embed",          # off | embed | embed_srt
     "subs_lang": "ui_en",     # ui_en | ui | en | audio | all
     "encoder": "gpu",         # gpu | cpu — для H.264/H.265; без подходящей видеокарты всегда cpu
+    "name_tpl": "title",      # имя файла: title | channel_title | date_title | title_id
+    "sponsorblock": "off",    # off | remove | mark — реклама в видео YouTube (база SponsorBlock)
+    "parallel": "on",         # on — следующее видео качается, пока перекодируется текущее
+    "rate_limit": "off",      # off | 1M | 2M | 5M | 10M | 25M — байт/с
+    "cookies": "off",         # off | firefox | file — вход на сайты через cookies
+    "cookies_file": "",
+    "proxy": "",
     "settings_open": False,
     "schema": 3,
 }
 AUDIO_RULES = ("orig", "orig_ui", "orig_ui_en", "all")
+# шаблоны имени файла для yt-dlp (к имени потом добавляется «[1080p h264]»)
+NAME_TPL = {
+    "title": "%(title).170B",
+    "channel_title": "%(uploader,channel,creator|)s — %(title).150B",
+    "date_title": "%(upload_date>%Y-%m-%d|)s %(title).160B",
+    "title_id": "%(title).150B [%(id)s]",
+}
+RATE_LIMITS = ("off", "1M", "2M", "5M", "10M", "25M")
+SPONSOR_CATS = "sponsor,selfpromo,interaction"
+# Chrome, Edge и другие браузеры на Chromium шифруют cookies ключом, который yt-dlp прочитать не может
+# (и держат файл открытым), поэтому из браузеров — только Firefox; для остальных — файл cookies.txt
+COOKIE_MODES = ("off", "firefox", "file")
 SUBS_RULES = ("ui_en", "ui", "en", "audio", "all")
 
 # ---- переводы: ui/locales/<код>.json — общие для интерфейса и для этого файла
@@ -170,7 +192,7 @@ def video_formats(info):
     return out
 
 
-def select_video(vfmts, max_height, codec):
+def select_video(vfmts, max_height, codec, allow_copy=True):
     """Какой видеопоток качать. Возвращает (формат или None, copy_video).
     - «Без перекодирования» — лучший поток как есть (включая HDR).
     - Иначе — лучший SDR (HDR при переводе в обычный H.264 выцветает).
@@ -184,7 +206,7 @@ def select_video(vfmts, max_height, codec):
         return max(pool, key=key), False
     sdr = [f for f in pool if not f["hdr"]] or pool
     best = max(sdr, key=key)
-    if codec == "h264":
+    if codec == "h264" and allow_copy:
         avc = [f for f in sdr if f["vc"].startswith("avc1") and f["h"] == best["h"] and f["fps"] == best["fps"]]
         if avc:
             return max(avc, key=key), True
@@ -315,8 +337,15 @@ CODECS = {
     "prores": ("prores_ks", "pcm_s24le", "mov", ["-profile:v", "2", "-pix_fmt", "yuv422p10le"], "prores"),
     "copy": (None, None, None, [], None),
 }
+# только звук: id -> (ffmpeg-кодек, расширение)
+AUDIO_OUT = {"mp3": ("libmp3lame", "mp3"), "flac": ("flac", "flac"), "m4a": ("aac", "m4a")}
 
 ERROR_HINTS = [
+    (r"could not copy .*cookie database", "py.err.cookieLocked"),
+    (r"failed to decrypt|app.bound|dpapi", "py.err.cookieDecrypt"),
+    (r"could not find .*cookies database|could not find firefox", "py.err.cookieNoBrowser"),
+    (r"cookies? file .*(not exist|no such)|\[errno 2\].*cookies", "py.err.cookieNoFile"),
+    (r"unable to connect to proxy|proxyerror|socks|tunnel connection failed", "py.err.proxy"),
     (r"private video", "py.err.private"),
     (r"sign in to confirm your age|age.restricted", "py.err.age"),
     (r"not a bot", "py.err.bot"),
@@ -333,6 +362,11 @@ ERROR_HINTS = [
     (r"getaddrinfo|timed out|connection (refused|reset|aborted)|network is unreachable|unable to download webpage",
      "py.err.network"),
 ]
+
+
+LOGIN_RE = re.compile(r"private video|sign in to confirm|age.restricted|not a bot|members.only|join this channel|"
+                      r"authentication is required|logged.in|login required|requires? (a )?log.?in|use --cookies|"
+                      r"account credentials", re.I)
 
 
 def friendly_error(text, lang="en"):
@@ -355,8 +389,6 @@ def load_settings():
             raw = {"out_dir": raw.get("out_dir"), "crf": raw.get("crf"), "preset": raw.get("preset")}
         data.update({k: v for k, v in raw.items() if k in DEFAULTS and v is not None})
         break
-    if data["codec"] not in CODECS:
-        data["codec"] = "h264"
     if data.get("schema", 1) < 2:
         # 1.4: озвучки и субтитры по умолчанию встраиваются в файл
         data.update(audio_lang="orig_ui", subs="embed", schema=2)
@@ -373,6 +405,18 @@ def load_settings():
         data["subs"] = "embed_srt"
     if data["subs"] not in SUBS_MODES:
         data["subs"] = "embed"
+    if data["codec"] not in CODECS and data["codec"] not in AUDIO_OUT:
+        data["codec"] = "h264"
+    if data["name_tpl"] not in NAME_TPL:
+        data["name_tpl"] = "title"
+    if data["sponsorblock"] not in ("off", "remove", "mark"):
+        data["sponsorblock"] = "off"
+    if data["parallel"] not in ("on", "off"):
+        data["parallel"] = "on"
+    if data["rate_limit"] not in RATE_LIMITS:
+        data["rate_limit"] = "off"
+    if data["cookies"] not in COOKIE_MODES:
+        data["cookies"] = "off"
     return data
 
 
@@ -491,6 +535,71 @@ def fetch_thumb(url, referer):
         return None
 
 
+class CookiesMissing(Exception):
+    pass
+
+
+def net_args(o, tmpdir=None, browser=None):
+    """Вход на сайты (cookies) и прокси — для каждого вызова yt-dlp.
+    browser — cookies.txt, присланный расширением (используется, только если вход в параметрах не выбран)."""
+    a = []
+    mode = o.get("cookies")
+    if browser and mode in (None, "off") and tmpdir:
+        f = Path(tmpdir) / "browser-cookies.txt"
+        f.write_text(browser, encoding="utf-8")
+        a += ["--cookies", str(f)]
+    elif mode == "firefox":
+        a += ["--cookies-from-browser", "firefox"]
+    elif mode == "file":
+        src = Path(o.get("cookies_file") or "")
+        if not o.get("cookies_file") or not src.is_file():
+            # без этой проверки yt-dlp падает с трассировкой вместо понятной ошибки
+            raise CookiesMissing()
+        # yt-dlp дописывает cookies обратно в файл — даём ему копию, файл пользователя не трогаем
+        if tmpdir and src.is_file():
+            dst = Path(tmpdir) / "cookies.txt"
+            try:
+                shutil.copyfile(src, dst)
+                src = dst
+            except OSError:
+                pass
+        a += ["--cookies", str(src)]
+    if (o.get("proxy") or "").strip():
+        a += ["--proxy", o["proxy"].strip()]
+    return a
+
+
+def safe_name(s, limit=120):
+    """Имя папки из названия плейлиста: без символов, запрещённых в Windows."""
+    s = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", s or "").strip().rstrip(". ")
+    return s[:limit].rstrip(". ")
+
+
+def trim_in(trim):
+    return ["-ss", f"{trim[0]:.3f}"] if trim and trim[0] else []
+
+
+def trim_out(trim):
+    return ["-t", f"{trim[1] - (trim[0] or 0):.3f}"] if trim and trim[1] else []
+
+
+def trim_duration(trim, dur):
+    if not trim:
+        return dur
+    end = trim[1] or dur
+    return max(0.0, end - (trim[0] or 0)) if end else None
+
+
+def trim_tag(trim):
+    """(1.20–3.45) — в имени файла фрагмента (двоеточие в Windows запрещено)."""
+    def f(s):
+        s = int(round(s))
+        h, m, ss = s // 3600, s % 3600 // 60, s % 60
+        return f"{h}.{m:02d}.{ss:02d}" if h else f"{m}.{ss:02d}"
+    a, b = trim
+    return f"({f(a or 0)}–{f(b) if b else 'end'})"
+
+
 def num(v):
     try:
         return float(v)
@@ -576,6 +685,137 @@ class Updater:
                 self.idle.set()
 
 
+# ---------------------------------------------------------------- preview data
+def site_of(info):
+    # домен понятнее внутренних имён yt-dlp («TwitchClips»): vk.com, clips.twitch.tv
+    return re.sub(r"^(www|m)\.", "", info.get("webpage_url_domain") or "") or info.get("extractor_key") or ""
+
+
+def preview_data(info, url, fetch=True):
+    """Карточка превью по ответу yt-dlp -J (её же показываем для видео из плейлиста во время загрузки)."""
+    vids = [f for f in info.get("formats") or [] if f.get("vcodec") not in (None, "none") and f.get("height")]
+    best = max(vids, key=lambda f: (f["height"], f.get("fps") or 0, f.get("tbr") or 0), default=None)
+    heights = sorted({f["height"] for f in vids})
+    thumb = info.get("thumbnail")
+    is_yt = "youtube" in (info.get("extractor") or "").lower()
+    if info.get("id") and is_yt:
+        thumb = f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
+        for t in info.get("thumbnails") or []:
+            if "maxresdefault.jpg" in (t.get("url") or ""):
+                thumb = t["url"]
+    elif thumb and fetch:
+        # многие сайты не отдают обложку без «своего» Referer — загружаем её сами и передаём как data:
+        thumb = fetch_thumb(thumb, info.get("webpage_url") or url) or thumb
+    return {
+        "ok": True,
+        "title": info.get("title") or info.get("id") or "",
+        "channel": info.get("uploader") or info.get("channel") or info.get("creator") or "",
+        "duration": info.get("duration"),
+        "views": info.get("view_count"),
+        "date": info.get("upload_date"),
+        "thumb": thumb,
+        "height": best and best["height"],
+        "fps": best and best.get("fps"),
+        "vcodec": best and (best.get("vcodec") or "").split(".")[0],
+        "heights": heights,
+        "vfmts": [{k: f[k] for k in ("h", "fps", "vc", "hdr", "https", "tbr")} for f in video_formats(info)],
+        "tracks": [{"lang": t["lang"], "original": t["original"], "auto": t["auto"]} for t in audio_tracks(info)],
+        "subs": official_subs(info),
+        "auto_subs": bool(info.get("automatic_captions")),
+        "language": info.get("language"),
+        "audio_only": is_audio_only(info),
+        "site": site_of(info),
+        "youtube": is_yt,
+    }
+
+
+def playlist_entries(pl):
+    ents = [e for e in pl.get("entries") or [] if e]
+    # канал YouTube приходит вкладками «Видео», «Трансляции», «Shorts» — берём первую (это «Видео»)
+    if ents and all(e.get("_type") == "playlist" for e in ents):
+        return playlist_entries(ents[0])
+    out = []
+    for e in ents:
+        u = e.get("url") or e.get("webpage_url")
+        if not u:
+            continue
+        if not re.match(r"https?://", u) and e.get("ie_key") == "Youtube":
+            u = f"https://www.youtube.com/watch?v={u}"
+        if not re.match(r"https?://", u):
+            continue
+        out.append({"url": u, "title": e.get("title") or "", "duration": e.get("duration")})
+    return out
+
+
+def playlist_data(info, url, lang):
+    entries = playlist_entries(info)
+    if not entries:
+        return {"ok": False, "error": tr(lang, "py.err.emptyPlaylist"), "raw": "empty playlist"}
+    is_yt = "youtube" in (info.get("extractor") or "").lower()
+    thumbs = [t.get("url") for t in info.get("thumbnails") or [] if t.get("url")]
+    first = (info.get("entries") or [{}])[0] or {}
+    if not thumbs:
+        thumbs = [t.get("url") for t in first.get("thumbnails") or [] if t.get("url")]
+    thumb = thumbs[-1] if thumbs else None
+    if is_yt and entries and "watch?v=" in entries[0]["url"]:
+        vid = entries[0]["url"].split("watch?v=")[1].split("&")[0]
+        thumb = f"https://i.ytimg.com/vi/{vid}/hqdefault.jpg"
+    elif thumb:
+        thumb = fetch_thumb(thumb, info.get("webpage_url") or url) or thumb
+    return {
+        "ok": True, "playlist": True,
+        "title": info.get("title") or info.get("id") or "",
+        "channel": info.get("uploader") or info.get("channel") or "",
+        "site": site_of(info), "youtube": is_yt, "thumb": thumb,
+        "entries": entries, "count": len(entries),
+        "duration": sum(e["duration"] or 0 for e in entries) or None,
+    }
+
+
+# ---------------------------------------------------------------- pause (Win32)
+class _PE32(ctypes.Structure):
+    _fields_ = [("dwSize", wintypes.DWORD), ("cntUsage", wintypes.DWORD), ("th32ProcessID", wintypes.DWORD),
+                ("th32DefaultHeapID", ctypes.c_size_t), ("th32ModuleID", wintypes.DWORD),
+                ("cntThreads", wintypes.DWORD), ("th32ParentProcessID", wintypes.DWORD),
+                ("pcPriClassBase", ctypes.c_long), ("dwFlags", wintypes.DWORD), ("szExeFile", ctypes.c_wchar * 260)]
+
+
+def process_tree(pid):
+    """pid и все его потомки (yt-dlp.exe запускает себя второй раз, а потом ffmpeg)."""
+    k = ctypes.windll.kernel32
+    k.CreateToolhelp32Snapshot.restype = wintypes.HANDLE
+    snap = k.CreateToolhelp32Snapshot(2, 0)  # TH32CS_SNAPPROCESS
+    kids = {}
+    try:
+        pe = _PE32()
+        pe.dwSize = ctypes.sizeof(_PE32)
+        ok = k.Process32FirstW(snap, ctypes.byref(pe))
+        while ok:
+            kids.setdefault(pe.th32ParentProcessID, []).append(pe.th32ProcessID)
+            ok = k.Process32NextW(snap, ctypes.byref(pe))
+    finally:
+        k.CloseHandle(snap)
+    out, todo = [], [pid]
+    while todo:
+        p = todo.pop()
+        if p in out:
+            continue
+        out.append(p)
+        todo += kids.get(p, [])
+    return out
+
+
+def suspend_tree(pid, suspend=True):
+    """Пауза: процессы замораживаются целиком (загрузка и перекодирование продолжаются с того же места)."""
+    k, nt = ctypes.windll.kernel32, ctypes.windll.ntdll
+    k.OpenProcess.restype = wintypes.HANDLE
+    for p in process_tree(pid):
+        h = k.OpenProcess(0x0800, False, p)  # PROCESS_SUSPEND_RESUME
+        if h:
+            (nt.NtSuspendProcess if suspend else nt.NtResumeProcess)(wintypes.HANDLE(h))
+            k.CloseHandle(wintypes.HANDLE(h))
+
+
 # ---------------------------------------------------------------- worker
 class Cancelled(Exception):
     pass
@@ -587,26 +827,60 @@ class DownloadError(RuntimeError):
         self.raw = raw
 
 
-class Job(threading.Thread):
-    def __init__(self, api, items, opts, overrides=None):
-        super().__init__(daemon=True)
-        self.api, self.items, self.opts = api, items, opts
-        self.overrides = overrides or {}
-        self.lang = resolve_lang(opts.get("lang", "auto"))
+class Task:
+    """Одна ссылка в очереди (для плейлиста — одно его видео)."""
+
+    def __init__(self, index, url, folder="", prefix="", trim=None, audio=None):
+        self.index, self.url, self.folder, self.prefix = index, url, folder, prefix
+        self.trim = trim    # (начало, конец или None) в секундах — только этот фрагмент
+        self.audio = audio  # выбор озвучки для этой ссылки
+        self.tmp = None
         self.info_path = None
         self.audio_mode = False
-        self.proc = None
+        self.srt_saved = []
+        self.browser = False  # повтор со входом из браузера (cookies от расширения)
+
+    def cleanup(self):
+        if self.tmp:
+            shutil.rmtree(self.tmp, ignore_errors=True)
+            self.tmp = None
+
+
+class Job(threading.Thread):
+    """Очередь загрузок. Скачивание и перекодирование идут в разных потоках: пока ffmpeg
+    перекодирует одно видео, следующее уже скачивается (сеть и процессор не ждут друг друга)."""
+
+    def __init__(self, api, items, opts, overrides=None):
+        super().__init__(daemon=True)
+        self.api, self.opts = api, opts
+        overrides = overrides or {}
+        self.tasks = []
+        for i, it in enumerate(items):
+            it = {"url": it} if isinstance(it, str) else it
+            ov = overrides.get(it["url"]) or {}
+            trim = ov.get("trim")
+            trim = (num(trim[0]) or 0.0, num(trim[1])) if trim else None
+            self.tasks.append(Task(i, it["url"], safe_name(it.get("folder") or ""), it.get("prefix") or "",
+                                   trim, ov.get("audio")))
+        self.lang = resolve_lang(opts.get("lang", "auto"))
+        self.procs = {}   # "dl" / "tc" -> Popen
         self.cancelled = threading.Event()
-        self.tmp = None
-        self._last_emit = 0.0
+        self.paused = False
+        self._resumed = threading.Event()
+        self._resumed.set()
+        self._plock = threading.Lock()
+        self._slock = threading.Lock()
+        self._last_emit = {}
+        self.stats = {"saved": 0, "bytes": 0, "failed": 0}
 
     def emit(self, kind, **data):
         self.api.push({"kind": kind, **data})
 
     def emit_progress(self, force=False, **data):
         now = time.monotonic()
-        if force or now - self._last_emit >= 0.4:
-            self._last_emit = now
+        key = data.get("stage")
+        if force or now - self._last_emit.get(key, 0) >= 0.4:
+            self._last_emit[key] = now
             self.emit("progress", **data)
 
     def t(self, key, **p):
@@ -615,104 +889,219 @@ class Job(threading.Thread):
     def log(self, line, level="n"):
         self.emit("log", line=line, level=level)
 
+    def count(self, key, n=1):
+        with self._slock:
+            self.stats[key] += n
+
+    # ---- pause / cancel
+    def set_paused(self, on):
+        with self._plock:
+            if on == self.paused or self.cancelled.is_set():
+                return
+            self.paused = on
+            (self._resumed.clear if on else self._resumed.set)()
+            for p in list(self.procs.values()):
+                if p and p.poll() is None:
+                    try:
+                        suspend_tree(p.pid, on)
+                    except Exception:
+                        pass
+        self.emit("paused", on=on)
+
+    def wait_resumed(self):
+        while not self._resumed.wait(0.25):
+            if self.cancelled.is_set():
+                break
+        if self.cancelled.is_set():
+            raise Cancelled()
+
     def cancel(self):
         self.cancelled.set()
-        p = self.proc
-        if p and p.poll() is None:
-            subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)],
-                           capture_output=True, creationflags=NO_WINDOW)
+        self._resumed.set()
+        for p in list(self.procs.values()):
+            if p and p.poll() is None:
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(p.pid)],
+                               capture_output=True, creationflags=NO_WINDOW)
 
-    def run_proc(self, args, on_line):
+    def spawn(self, slot, args, **kw):
+        self.wait_resumed()
+        p = subprocess.Popen(args, stdin=subprocess.DEVNULL, creationflags=NO_WINDOW | BELOW_NORMAL,
+                             env=UTF8_ENV, **kw)
+        with self._plock:
+            self.procs[slot] = p
+            if self.paused:
+                suspend_tree(p.pid, True)
+        if self.cancelled.is_set():
+            self.cancel()
+        return p
+
+    def run_proc(self, args, on_line, slot):
         self.log("$ " + " ".join(f'"{a}"' if " " in a else a for a in args), "c")
-        self.proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                     stdin=subprocess.DEVNULL, creationflags=NO_WINDOW | BELOW_NORMAL,
-                                     env=UTF8_ENV)
-        for raw in self.proc.stdout:
+        p = self.spawn(slot, args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        for raw in p.stdout:
             line = raw.decode("utf-8", errors="replace").rstrip()
             if line:
                 on_line(line)
-        code = self.proc.wait()
-        self.proc = None
+        code = p.wait()
+        self.procs.pop(slot, None)
         if self.cancelled.is_set():
             raise Cancelled()
         return code
 
-    # ---- main loop
-    def _reset_tmp(self):
-        if self.tmp:
-            shutil.rmtree(self.tmp, ignore_errors=True)
-            self.tmp = None
+    # ---- queue
+    def net(self, task):
+        return net_args(self.opts, task.tmp, self.api.browser_cookies(task.url) if task.browser else None)
 
-    def attempt(self, url):
+    def attempt(self, task):
         try:
-            return self.process(url)
+            return self._attempt(task)
+        except DownloadError as e:
+            # сайт требует вход, а в параметрах он не настроен — пробуем cookies, присланные расширением
+            if task.browser or self.opts.get("cookies", "off") != "off" or not LOGIN_RE.search(e.raw) \
+                    or not self.api.browser_cookies(task.url):
+                raise
+            self.log(self.t("py.browserLogin"))
+            task.cleanup()
+            task.browser = True
+            self.api._info_cache.pop(task.url, None)
+            return self._attempt(task)
+
+    def _attempt(self, task):
+        try:
+            return self.prepare(task)
         except DownloadError as e:
             if re.search(r"http error 403", e.raw, re.I):
                 # TikTok и другие иногда отказывают при частых запросах — ждём и пробуем ещё раз с нуля
                 self.log(self.t("py.retry403"))
-                self._reset_tmp()
-                self.api._info_cache.pop(url, None)
+                task.cleanup()
+                self.api._info_cache.pop(task.url, None)
                 for _ in range(8):
                     if self.cancelled.is_set():
                         raise Cancelled()
                     time.sleep(0.5)
                 try:
-                    return self.process(url)
+                    return self.prepare(task)
                 except DownloadError as e2:
                     e = e2
             # частая причина падений — устаревший yt-dlp: обновляем и пробуем ещё раз
             if not (self.api._updater.enabled and OUTDATED_RE.search(e.raw)):
                 raise e
             self.log(self.t("py.outdated"))
-            self._reset_tmp()
+            task.cleanup()
             if not self.api._updater.check(force=True):
-                raise
-            return self.process(url)
+                raise e
+            return self.prepare(task)
+
+    def download_stage(self, task):
+        """Получить данные и скачать. None — ошибка или отмена (о них уже сообщено)."""
+        self.emit("item", index=task.index, total=len(self.tasks))
+        try:
+            return self.attempt(task)
+        except Cancelled:
+            self.emit("item_cancelled", index=task.index, stage="download")
+        except Exception as e:  # noqa: BLE001
+            self.count("failed")
+            msg = str(e) or self.t("py.err.unknown")
+            self.log(msg, "e")
+            self.emit("item_error", index=task.index, total=len(self.tasks), message=msg, stage="download")
+        task.cleanup()
+        return None
+
+    def finish_stage(self, task, prep):
+        try:
+            if self.cancelled.is_set():
+                raise Cancelled()
+            self.emit("tc_start", index=task.index)
+            path = self.finalize(task, prep)
+            size = path.stat().st_size
+            self.count("saved")
+            self.count("bytes", size)
+            self.emit("item_done", index=task.index, path=str(path), size=size, srt=task.srt_saved)
+        except Cancelled:
+            self.emit("item_cancelled", index=task.index, stage="transcode")
+        except Exception as e:  # noqa: BLE001
+            self.count("failed")
+            msg = str(e) or self.t("py.err.unknown")
+            self.log(msg, "e")
+            self.emit("item_error", index=task.index, total=len(self.tasks), message=msg, stage="transcode")
+        finally:
+            task.cleanup()
 
     def run(self):
-        total = len(self.items)
         t0 = time.monotonic()
-        saved, saved_bytes, failed = 0, 0, 0
         if not self.api._updater.idle.is_set():
             self.log(self.t("py.waitUpdate"))
             self.api._updater.idle.wait(300)
-        for i, url in enumerate(self.items):
-            if self.cancelled.is_set():
-                break
-            self.emit("item", index=i, total=total)
-            try:
-                path = self.attempt(url)
-                size = path.stat().st_size
-                saved += 1
-                saved_bytes += size
-                self.emit("item_done", index=i, path=str(path), size=size, srt=getattr(self, "srt_saved", []))
-            except Cancelled:
-                self.emit("item_cancelled", index=i)
-                break
-            except Exception as e:  # noqa: BLE001
-                failed += 1
-                msg = str(e) or self.t("py.err.unknown")
-                self.log(msg, "e")
-                self.emit("item_error", index=i, total=total, message=msg)
-            finally:
-                if self.tmp:
-                    shutil.rmtree(self.tmp, ignore_errors=True)
-                    self.tmp = None
-        self.emit("finished", saved=saved, failed=failed, total=total, bytes=saved_bytes,
+        if self.opts.get("parallel", "on") == "on" and len(self.tasks) > 1:
+            self._run_pipeline()
+        else:
+            for task in self.tasks:
+                if self.cancelled.is_set():
+                    break
+                prep = self.download_stage(task)
+                if prep is not None:
+                    self.finish_stage(task, prep)
+        s = self.stats
+        self.emit("finished", saved=s["saved"], failed=s["failed"], total=len(self.tasks), bytes=s["bytes"],
                   elapsed=time.monotonic() - t0, cancelled=self.cancelled.is_set())
 
-    def process(self, url):
-        o = self.opts
-        out_dir = Path(o["out_dir"])
-        out_dir.mkdir(parents=True, exist_ok=True)
-        self.tmp = Path(tempfile.mkdtemp(prefix="topicture_"))
-        self.audio_mode = False
-        meta = self.fetch_info(url)
+    def _run_pipeline(self):
+        q = queue.Queue()
+        # не больше одного скачанного видео «в запасе»: временные файлы не копятся на диске
+        slots = threading.Semaphore(2)
 
-        # видео: SDR вместо HDR; H.264 от YouTube — без перекодирования
-        if is_audio_only(meta):
-            return self.process_audio(meta)
-        vpick, video_copy = select_video(video_formats(meta), o["max_height"], o["codec"])
+        def producer():
+            try:
+                for task in self.tasks:
+                    while not slots.acquire(timeout=0.25):
+                        if self.cancelled.is_set():
+                            break
+                    else:
+                        if self.cancelled.is_set():
+                            slots.release()
+                            break
+                        prep = self.download_stage(task)
+                        if prep is None:
+                            slots.release()
+                        else:
+                            q.put((task, prep))
+                        continue
+                    break
+            finally:
+                q.put(None)
+
+        th = threading.Thread(target=producer, daemon=True)
+        th.start()
+        while True:
+            item = q.get()
+            if item is None:
+                break
+            try:
+                self.finish_stage(*item)
+            finally:
+                slots.release()
+        th.join()
+
+    # ---- download half
+    def prepare(self, task):
+        o = self.opts
+        task.tmp = Path(tempfile.mkdtemp(prefix="topicture_"))
+        try:
+            net_args(o, task.tmp)
+        except CookiesMissing:
+            raise DownloadError(self.t("py.err.cookieNoFile"), "cookies file missing")
+        task.audio_mode = False
+        meta = self.fetch_info(task)
+        if task.folder:  # видео из плейлиста — превью показываем по уже полученным данным
+            try:
+                self.emit("meta", index=task.index, data=preview_data(meta, task.url, fetch=False))
+            except Exception:
+                pass
+
+        if o["codec"] in AUDIO_OUT or is_audio_only(meta):
+            return self.prepare_audio(task, meta)
+        # видео: SDR вместо HDR; H.264 от YouTube — без перекодирования (кроме фрагмента: его режем точно по кадру)
+        vpick, video_copy = select_video(video_formats(meta), o["max_height"], o["codec"], allow_copy=not task.trim)
         if video_copy:
             self.log(self.t("py.copyVideo", q=f"{vpick['h']}p{vpick['fps']}"))
         elif vpick and o["codec"] != "copy":
@@ -720,7 +1109,7 @@ class Job(threading.Thread):
 
         # озвучка: правило из настроек или выбор для конкретного видео
         tracks = audio_tracks(meta, prefer_aac=video_copy)
-        rule = (self.overrides.get(url) or {}).get("audio") or o["audio_lang"]
+        rule = task.audio or o["audio_lang"]
         chosen = pick_audio(tracks, rule, self.lang) if len(tracks) > 1 else []
         if chosen:
             self.log(self.t("py.tracks", n=len(chosen), total=len(tracks), list=", ".join(
@@ -738,103 +1127,49 @@ class Job(threading.Thread):
             else:
                 self.log(self.t("py.subsNone"))
         # план загрузки — чтобы прогресс показывал только реальные шаги
-        self.emit("plan", subs=bool(subs_keys), audio_n=max(1, len(chosen)))
+        self.emit("plan", index=task.index, subs=bool(subs_keys), audio_n=max(1, len(chosen)), copy=video_copy)
 
-        src, sub_files = self.download(chosen, subs_keys, vpick["id"] if vpick else None)
-        info = probe(src)
-        vcodec, acodec, ext, extra, tag = CODECS[o["codec"]]
+        src, sub_files = self.download(task, chosen, subs_keys, vpick["id"] if vpick else None)
+        return {"kind": "video", "src": src, "subs": sub_files, "chosen": chosen, "tracks": tracks,
+                "video_copy": video_copy}
 
-        q = quality_tag(info["height"], info["fps"])
-        a_tag = ""
-        if len(chosen) > 3:
-            a_tag = " multi"
-        elif len(chosen) > 1 or (chosen and not chosen[0]["original"]):
-            a_tag = " " + "+".join(base_lang(t["lang"]) for t in chosen)
-        if chosen:
-            audio_meta = [(t["lang"], self.t("py.trackOriginal") if t["original"] else self.t("py.trackAuto") if t["auto"] else "")
-                          for t in chosen]
-        else:  # одна дорожка — всё равно подпишем язык, если YouTube его знает
-            audio_meta = [(tracks[0]["lang"], "")] if tracks and tracks[0]["lang"] != "und" else []
-        embed = sub_files if o["subs"] in ("embed", "embed_srt") else []
-
-        if vcodec is None:
-            orig = info["vcodec"] or "orig"
-            if embed or len(chosen) > 1 or audio_meta:
-                # перепаковка без перекодирования, чтобы вшить субтитры и подписать дорожки
-                dest = unique_path(out_dir / f"{src.stem} [{q} {orig}{a_tag}].mkv")
-                self.convert(src, dest, info, "copy", "copy", [], embed, audio_meta)
-            else:
-                dest = unique_path(out_dir / f"{src.stem} [{q} {orig}{a_tag}]{src.suffix}")
-                shutil.move(str(src), dest)
-        else:
-            if embed:
-                # со встроенными субтитрами — MKV: в MP4 первые субтитры всегда «включены по умолчанию»,
-                # а в MKV они выключены, пока их не выберут в плеере
-                ext = "mkv"
-                extra = [a for i, a in enumerate(extra)
-                         if a != "-tag:v" and (i == 0 or extra[i - 1] != "-tag:v")]  # hvc1 — только для mp4
-            dest = unique_path(out_dir / f"{src.stem} [{q} {tag}{a_tag}].{ext}")
-            self.convert(src, dest, info, vcodec, acodec, extra, embed, audio_meta, video_copy=video_copy)
-
-        if embed:
-            self.log(self.t("py.embedded", list=", ".join(l for l, _ in embed)))
-        self.srt_saved = []
-        if o["subs"] == "embed_srt":
-            for lang, f in sub_files:
-                target = unique_path(dest.with_name(f"{dest.stem}.{lang}.srt"))
-                shutil.move(str(f), target)
-                self.srt_saved.append(str(target))
-                self.log(self.t("py.srtSaved", name=target.name))
-        return dest
-
-    def process_audio(self, meta):
+    def prepare_audio(self, task, meta):
         o = self.opts
-        out_dir = Path(o["out_dir"])
-        self.log(self.t("py.audioOnly"))
-        self.audio_mode = True
-        self.emit("plan", subs=False, audio_n=1, audio_only=True)
-        src, _ = self.download([], [], fmt="ba[acodec^=mp4a]/ba[acodec=mp3]/ba/b")
-        a = probe(src).get("acodecs") or []
-        if a and a[0] in ("aac", "mp3"):
-            ext = "m4a" if a[0] == "aac" else "mp3"
-            dest = unique_path(out_dir / f"{src.stem}.{ext}")
-            self.emit("tc_mode", copy=True)
-            args = ["-c:a", "copy"]
-        else:
-            dest = unique_path(out_dir / f"{src.stem}.m4a")
-            args = ["-c:a", "aac", "-b:a", o["audio"]]
-        cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-nostats", "-i", str(src), "-vn", "-map", "0:a:0",
-               *args, "-movflags", "+faststart", str(dest)]
-        t0 = time.monotonic()
-        errors = []
-        code = self.run_proc(cmd, lambda line: (errors.append(line), self.log(line, "e")))
-        if code != 0 or not dest.exists():
-            dest.unlink(missing_ok=True)
-            raise RuntimeError(self.t("py.ffmpegFail") + (f": {errors[-1]}" if errors else "."))
-        self.emit("stage_done", stage="transcode", size=dest.stat().st_size, elapsed=time.monotonic() - t0)
-        self.srt_saved = []
-        return dest
+        source_audio = is_audio_only(meta)
+        self.log(self.t("py.audioOnly") if source_audio else self.t("py.audioOut", f=o["codec"].upper()))
+        task.audio_mode = True
+        tracks = audio_tracks(meta)
+        rule = task.audio or o["audio_lang"]
+        # в аудиофайле одна дорожка — первая из выбранных (оригинал, если он отмечен)
+        chosen = pick_audio(tracks, rule, self.lang)[:1] if len(tracks) > 1 else []
+        self.emit("plan", index=task.index, subs=False, audio_n=1, audio_only=True)
+        fmt = (chosen[0]["id"] + "/" if chosen else "") + "ba[acodec^=mp4a]/ba[acodec=mp3]/ba/b"
+        src, _ = self.download(task, [], [], fmt=fmt)
+        lang = (chosen or tracks or [{"lang": None}])[0]["lang"]
+        return {"kind": "audio", "src": src, "lang": lang,
+                "title": meta.get("title") or "", "artist": meta.get("uploader") or meta.get("channel") or ""}
 
-    # ---- metadata
-    def fetch_info(self, url):
+    def fetch_info(self, task):
         """yt-dlp -J во временный файл; загрузка потом идёт по нему (--load-info-json),
         чтобы не ходить на сайт дважды."""
-        self.emit_progress(force=True, stage="download", step="video", pct=None, note=self.t("py.fetching"))
-        path = self.tmp / "info.json"
+        self.emit_progress(force=True, index=task.index, stage="download", step="video", pct=None,
+                           note=self.t("py.fetching"))
+        path = task.tmp / "info.json"
         # данные уже получены для превью — используем их: меньше запросов к сайту (TikTok за частые даёт 403)
-        cached = self.api._info_cache.get(url)
+        cached = self.api._info_cache.get(task.url)
         if cached and time.time() - cached[0] < INFO_CACHE_TTL:
+            if len(cached) > 2 and cached[2]:  # превью получено со входом из браузера — и качаем так же
+                task.browser = True
             path.write_bytes(cached[1])
-            self.info_path = path
+            task.info_path = path
             return json.loads(cached[1].decode("utf-8", errors="replace"))
-        args = ["yt-dlp", "-J", "--no-playlist", "--no-warnings", "--", url]
+        args = ["yt-dlp", "-J", "--no-playlist", "--no-warnings", *self.net(task), "--", task.url]
         self.log("$ " + " ".join(args), "c")
         with open(path, "wb") as out:
-            self.proc = subprocess.Popen(args, stdout=out, stderr=subprocess.PIPE, stdin=subprocess.DEVNULL,
-                                         creationflags=NO_WINDOW, env=UTF8_ENV)
-            err = self.proc.stderr.read().decode("utf-8", errors="replace")
-            code = self.proc.wait()
-            self.proc = None
+            p = self.spawn("dl", args, stdout=out, stderr=subprocess.PIPE)
+            err = p.stderr.read().decode("utf-8", errors="replace")
+            code = p.wait()
+            self.procs.pop("dl", None)
         if self.cancelled.is_set():
             raise Cancelled()
         errors = [l for l in err.splitlines() if l.startswith("ERROR")]
@@ -844,12 +1179,12 @@ class Job(threading.Thread):
         if code != 0:
             raise DownloadError(friendly_error(errors[-1], self.lang) if errors else self.t("py.ytdlpExit", code=code),
                                 "\n".join(errors))
-        self.info_path = path
+        task.info_path = path
         return json.loads(path.read_text(encoding="utf-8", errors="replace"))
 
-    # ---- download
-    def download(self, chosen, subs_keys, video_id=None, fmt=None):
-        h = self.opts["max_height"]
+    def download(self, task, chosen, subs_keys, video_id=None, fmt=None):
+        o = self.opts
+        h = o["max_height"]
         lim = "" if h == "best" else f"[height<={int(h)}]"
         v = video_id or f"bv*{lim}"
         # запасные варианты: не все сайты сообщают размер кадра, у некоторых видео и звук — один файл
@@ -860,11 +1195,20 @@ class Job(threading.Thread):
             fmt = f"{v}+" + "+".join(t["id"] for t in chosen) + f"/{v}+ba/{tail}"
         else:
             fmt = f"{v}+ba[acodec^=mp4a]/{v}+ba/{v}/{tail}" if video_id else tail
-        args = ["yt-dlp", "--load-info-json", str(self.info_path), "-f", fmt,
+        name = NAME_TPL.get(o.get("name_tpl"), NAME_TPL["title"])
+        args = ["yt-dlp", "--load-info-json", str(task.info_path), "-f", fmt, *self.net(task),
                 "--merge-output-format", "mkv", "--newline", "--color", "never", "--progress-template",
                 "download:PROG %(progress.downloaded_bytes)s %(progress.total_bytes)s "
                 "%(progress.total_bytes_estimate)s %(progress.speed)s %(progress.eta)s",
-                "-o", str(self.tmp / "%(title).180B.%(ext)s")]
+                "-o", str(task.tmp / f"{name}.%(ext)s")]
+        if o.get("rate_limit") in RATE_LIMITS[1:]:
+            args += ["-r", o["rate_limit"]]
+        # SponsorBlock (только YouTube): с фрагментом не сочетается — сдвинулось бы время
+        sb = o.get("sponsorblock")
+        if sb == "remove" and not task.trim:
+            args += ["--sponsorblock-remove", SPONSOR_CATS]
+        elif sb == "mark":
+            args += ["--sponsorblock-mark", SPONSOR_CATS, "--embed-chapters"]
         if len(chosen) > 1:
             args.append("--audio-multistreams")
         if subs_keys:
@@ -872,6 +1216,7 @@ class Job(threading.Thread):
         t0 = time.monotonic()
         st = {"step": -1, "errors": [], "media": 0}
         n_audio = max(1, len(chosen))
+        idx = task.index
 
         def on_line(line):
             if line.startswith("PROG "):
@@ -880,8 +1225,8 @@ class Job(threading.Thread):
                 p = line.split()
                 done, tot, est, speed, eta = (num(x) for x in p[1:6])
                 tot = tot or est
-                self.emit_progress(stage="download", step=st["step"], done=done, total=tot, speed=speed, eta=eta,
-                                   pct=(done / tot * 100) if (done is not None and tot) else None,
+                self.emit_progress(index=idx, stage="download", step=st["step"], done=done, total=tot, speed=speed,
+                                   eta=eta, pct=(done / tot * 100) if (done is not None and tot) else None,
                                    audio_i=max(1, st["media"] - 1), audio_n=n_audio)
                 return
             self.log(line, "e" if line.startswith("ERROR") else "n")
@@ -890,17 +1235,21 @@ class Job(threading.Thread):
             elif "[download] Destination:" in line:
                 if re.search(r"\.(vtt|srt|ttml|srv\d|json3)$", line, re.I):
                     st["step"] = -1
-                    self.emit_progress(force=True, stage="download", step="subs", pct=None, note=self.t("py.subsNote"))
+                    self.emit_progress(force=True, index=idx, stage="download", step="subs", pct=None,
+                                       note=self.t("py.subsNote"))
                 else:
                     st["media"] += 1
-                    st["step"] = "audio" if self.audio_mode or st["media"] > 1 else "video"
-                    self.emit_progress(force=True, stage="download", step=st["step"], pct=0,
+                    st["step"] = "audio" if task.audio_mode or st["media"] > 1 else "video"
+                    self.emit_progress(force=True, index=idx, stage="download", step=st["step"], pct=0,
                                        audio_i=max(1, st["media"] - 1), audio_n=n_audio)
             elif line.startswith("[Merger]"):
-                self.emit_progress(force=True, stage="download", step="merge", pct=100)
+                self.emit_progress(force=True, index=idx, stage="download", step="merge", pct=100)
+            elif line.startswith("[SponsorBlock]") or line.startswith("[ModifyChapters]"):
+                self.emit_progress(force=True, index=idx, stage="download", step="merge", pct=100,
+                                   note=self.t("py.sponsorNote"))
 
-        code = self.run_proc(args, on_line)
-        files = [f for f in self.tmp.iterdir() if f.is_file() and not f.name.endswith((".part", ".ytdl"))
+        code = self.run_proc(args, on_line, "dl")
+        files = [f for f in task.tmp.iterdir() if f.is_file() and not f.name.endswith((".part", ".ytdl"))
                  and f.suffix.lower() in (".mkv", ".webm", ".mp4", ".mov", ".m4a", ".mp3", ".opus", ".ogg",
                                           ".aac", ".flac", ".wav", ".flv", ".ts")]
         if code != 0 or not files:
@@ -910,42 +1259,154 @@ class Job(threading.Thread):
                                 self.t("py.ytdlpExit", code=code), "\n".join(st["errors"]))
         src = max(files, key=lambda f: f.stat().st_size)
         subs = []
-        for f in sorted(self.tmp.glob("*.srt")):
+        for f in sorted(task.tmp.glob("*.srt")):
             suf = f.suffixes
             if len(suf) >= 2 and f.stat().st_size > 0:
                 subs.append((suf[-2][1:], f))
-        self.emit("stage_done", stage="download", size=src.stat().st_size,
+        self.emit("stage_done", index=idx, stage="download", size=src.stat().st_size,
                   elapsed=time.monotonic() - t0, merged=st["media"] > 1)
         return src, subs
 
-    # ---- transcode / remux
-    def convert(self, src, dest, info, vcodec, acodec, extra, subs=(), audio_meta=(), video_copy=False):
+    # ---- transcode half
+    def out_dir(self, task):
+        d = Path(self.opts["out_dir"])
+        if task.folder:
+            d = d / task.folder
+        d.mkdir(parents=True, exist_ok=True)
+        return d
+
+    def stem(self, task, src):
+        # «Канал — Название» без канала, «Дата Название» без даты: убираем висящие разделители
+        return task.prefix + (re.sub(r"^[\s—–-]+", "", src.stem).strip() or src.stem)
+
+    def finalize(self, task, p):
+        if p["kind"] == "audio":
+            return self.finalize_audio(task, p)
+        o = self.opts
+        out_dir = self.out_dir(task)
+        src, sub_files, chosen, tracks, video_copy = p["src"], p["subs"], p["chosen"], p["tracks"], p["video_copy"]
+        info = probe(src)
+        vcodec, acodec, ext, extra, tag = CODECS[o["codec"]]
+        stem = self.stem(task, src)
+
+        q = quality_tag(info["height"], info["fps"])
+        a_tag = ""
+        if len(chosen) > 3:
+            a_tag = " multi"
+        elif len(chosen) > 1 or (chosen and not chosen[0]["original"]):
+            a_tag = " " + "+".join(base_lang(t["lang"]) for t in chosen)
+        if chosen:
+            audio_meta = [(t["lang"], self.t("py.trackOriginal") if t["original"] else self.t("py.trackAuto") if t["auto"] else "")
+                          for t in chosen]
+        else:  # одна дорожка — всё равно подпишем язык, если сайт его знает
+            audio_meta = [(tracks[0]["lang"], "")] if tracks and tracks[0]["lang"] != "und" else []
+        embed = sub_files if o["subs"] in ("embed", "embed_srt") else []
+        cut = " " + trim_tag(task.trim) if task.trim else ""
+
+        if vcodec is None:
+            orig = info["vcodec"] or "orig"
+            if embed or len(chosen) > 1 or audio_meta or task.trim:
+                # перепаковка без перекодирования: вшить субтитры, подписать дорожки, вырезать фрагмент
+                dest = unique_path(out_dir / f"{stem}{cut} [{q} {orig}{a_tag}].mkv")
+                self.convert(task, src, dest, info, "copy", "copy", [], embed, audio_meta)
+            else:
+                dest = unique_path(out_dir / f"{stem} [{q} {orig}{a_tag}]{src.suffix}")
+                shutil.move(str(src), dest)
+        else:
+            if embed:
+                # со встроенными субтитрами — MKV: в MP4 первые субтитры всегда «включены по умолчанию»,
+                # а в MKV они выключены, пока их не выберут в плеере
+                ext = "mkv"
+                extra = [a for i, a in enumerate(extra)
+                         if a != "-tag:v" and (i == 0 or extra[i - 1] != "-tag:v")]  # hvc1 — только для mp4
+            dest = unique_path(out_dir / f"{stem}{cut} [{q} {tag}{a_tag}].{ext}")
+            self.convert(task, src, dest, info, vcodec, acodec, extra, embed, audio_meta, video_copy=video_copy)
+
+        if embed:
+            self.log(self.t("py.embedded", list=", ".join(l for l, _ in embed)))
+        task.srt_saved = []
+        if o["subs"] == "embed_srt":
+            for lang, f in sub_files:
+                target = unique_path(dest.with_name(f"{dest.stem}.{lang}.srt"))
+                if task.trim:  # субтитры к фрагменту — тоже со сдвигом времени
+                    self.run_proc(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", *trim_in(task.trim),
+                                   "-i", str(f), *trim_out(task.trim), str(target)], lambda l: self.log(l, "e"), "tc")
+                else:
+                    shutil.move(str(f), target)
+                task.srt_saved.append(str(target))
+                self.log(self.t("py.srtSaved", name=target.name))
+        return dest
+
+    def finalize_audio(self, task, p):
+        o = self.opts
+        src = p["src"]
+        out_dir = self.out_dir(task)
+        stem = self.stem(task, src) + (" " + trim_tag(task.trim) if task.trim else "")
+        a = probe(src)
+        first = (a.get("acodecs") or [""])[0]
+        target = o["codec"] if o["codec"] in AUDIO_OUT else None
+        copy = False
+        if target == "flac":
+            # блоки одного размера: иначе после обрезки AAC первый короткий кадр ломает кодировщик FLAC
+            ext, args = "flac", ["-af", "asetnsamples=n=4096:p=0", "-c:a", "flac"]
+        elif target == "mp3":
+            copy = first == "mp3"
+            ext, args = "mp3", ["-c:a", "copy"] if copy else ["-c:a", "libmp3lame", "-b:a", o["audio"]]
+        elif first in ("aac", "mp3"):  # M4A или «звук как есть» — AAC/MP3 с сайта не пережимаем
+            copy = True
+            ext, args = ("m4a" if first == "aac" else "mp3"), ["-c:a", "copy"]
+        else:
+            ext, args = "m4a", ["-c:a", "aac", "-b:a", o["audio"]]
+        if copy:
+            self.emit("tc_mode", index=task.index, copy=True)
+        dest = unique_path(out_dir / f"{stem}.{ext}")
+        meta = ["-map_metadata", "-1", "-metadata", f"title={p['title']}"]
+        if p["artist"]:
+            meta += ["-metadata", f"artist={p['artist']}"]
+        if p.get("lang") and p["lang"] != "und":
+            meta += ["-metadata:s:a:0", f"language={iso3(p['lang'])}"]
+        cmd = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-nostats", "-progress", "pipe:1",
+               *trim_in(task.trim), "-i", str(src), "-vn", "-map", "0:a:0", *trim_out(task.trim), *args, *meta]
+        if ext == "m4a":
+            cmd += ["-movflags", "+faststart"]
+        cmd.append(str(dest))
+        dur = trim_duration(task.trim, a["duration"])
+        self.ffmpeg(task, cmd, dest, dur, None)
+        task.srt_saved = []
+        return dest
+
+    def convert(self, task, src, dest, info, vcodec, acodec, extra, subs=(), audio_meta=(), video_copy=False):
         if video_copy:
-            self.emit("tc_mode", copy=True)
-            return self._convert(src, dest, info, vcodec, acodec, extra, subs, audio_meta, None, video_copy=True)
+            self.emit("tc_mode", index=task.index, copy=True)
+            return self._convert(task, src, dest, info, vcodec, acodec, extra, subs, audio_meta, None, video_copy=True)
         codec = {"libx264": "h264", "libx265": "h265"}.get(vcodec)
         gpu = self.api._gpu_for_job() if codec and self.opts.get("encoder") == "gpu" else None
         if gpu:
             self.log(self.t("py.gpuUse", vendor=gpu["vendor"], enc=gpu[codec]))
             try:
-                return self._convert(src, dest, info, vcodec, acodec, extra, subs, audio_meta, gpu)
+                return self._convert(task, src, dest, info, vcodec, acodec, extra, subs, audio_meta, gpu)
             except Cancelled:
                 raise
             except RuntimeError as e:
                 self.log(self.t("py.gpuFail", e=e), "e")
-                self.emit_progress(force=True, stage="transcode", pct=0, frame=0, frames=info["frames"], speed=None, eta=None)
-        return self._convert(src, dest, info, vcodec, acodec, extra, subs, audio_meta, None)
+                self.emit_progress(force=True, index=task.index, stage="transcode", pct=0, frame=0,
+                                   frames=info["frames"], speed=None, eta=None)
+        return self._convert(task, src, dest, info, vcodec, acodec, extra, subs, audio_meta, None)
 
-    def _convert(self, src, dest, info, vcodec, acodec, extra, subs, audio_meta, gpu, video_copy=False):
+    def _convert(self, task, src, dest, info, vcodec, acodec, extra, subs, audio_meta, gpu, video_copy=False):
         o = self.opts
         codec = {"libx264": "h264", "libx265": "h265"}.get(vcodec)
+        cut_in = trim_in(task.trim)
         args = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error", "-nostats", "-progress", "pipe:1",
-                "-i", str(src)]
+                *cut_in, "-i", str(src)]
         for _, f in subs:
-            args += ["-i", str(f)]
+            args += [*cut_in, "-i", str(f)]
         args += ["-map", "0:v:0", "-map", "0:a?"]
         for i in range(len(subs)):
             args += ["-map", f"{i + 1}:0"]
+        args += trim_out(task.trim)
+        if task.trim:
+            args += ["-map_chapters", "-1"]
         if vcodec == "copy":
             args += ["-c:v", "copy", "-c:a", "copy"]
         elif video_copy:
@@ -976,11 +1437,15 @@ class Job(threading.Thread):
         if dest.suffix == ".mp4":
             args += ["-movflags", "+faststart"]
         args.append(str(dest))
+        dur = trim_duration(task.trim, info["duration"])
+        frames = int(dur * info["fps"]) if dur and info["fps"] else info["frames"]
+        self.ffmpeg(task, args, dest, dur, frames)
 
-        dur, frames = info["duration"], info["frames"]
+    def ffmpeg(self, task, args, dest, dur, frames):
         t0 = time.monotonic()
         cur = {"frame": 0, "speed": None}
         errors = []
+        idx = task.index
 
         def on_line(line):
             k, sep, v = line.partition("=")
@@ -997,16 +1462,203 @@ class Job(threading.Thread):
                 pct = max(0.0, min(100.0, sec / dur * 100))
                 el = time.monotonic() - t0
                 eta = el * (100 - pct) / pct if pct > 0.5 else None
-                self.emit_progress(stage="transcode", pct=pct, frame=cur["frame"], frames=frames,
+                self.emit_progress(index=idx, stage="transcode", pct=pct, frame=cur["frame"], frames=frames,
                                    speed=cur["speed"], eta=eta)
             elif k == "progress" and v == "end":
                 self.log(f"frame={cur['frame']} speed={cur['speed']}x", "n")
 
-        code = self.run_proc(args, on_line)
+        code = self.run_proc(args, on_line, "tc")
         if code != 0 or not dest.exists() or dest.stat().st_size == 0:
             dest.unlink(missing_ok=True)
             raise RuntimeError(self.t("py.ffmpegFail") + (f": {errors[-1]}" if errors else "."))
-        self.emit("stage_done", stage="transcode", size=dest.stat().st_size, elapsed=time.monotonic() - t0)
+        self.emit("stage_done", index=idx, stage="transcode", size=dest.stat().st_size, elapsed=time.monotonic() - t0)
+
+
+# ---------------------------------------------------------------- browser extension bridge
+# Расширение (папка extension) отправляет ссылку через native messaging: браузер запускает
+# «To Picture.exe chrome-extension://…/», тот кладёт ссылку в папку inbox и будит открытое окно
+# (через локальный сокет) или запускает программу.
+HOST_NAME = "com.topicture.app"
+EXT_ID = "kefllcapjmcgojghjpaofcpoigeiocgi"  # постоянный: задан ключом в extension/manifest.json
+EXT_DIR = INSTALL_DIR / "extension"
+INBOX = DATA_DIR / "inbox"
+IPC_FILE = DATA_DIR / "ipc.json"
+HOST_MANIFEST = DATA_DIR / "native-host.json"
+HOST_KEYS = [  # браузеры на Chromium ищут описание связи каждый в своём разделе реестра
+    r"Software\Google\Chrome\NativeMessagingHosts",
+    r"Software\Microsoft\Edge\NativeMessagingHosts",
+    r"Software\Chromium\NativeMessagingHosts",
+    r"Software\BraveSoftware\Brave-Browser\NativeMessagingHosts",
+    r"Software\Vivaldi\NativeMessagingHosts",
+    r"Software\Yandex\YandexBrowser\NativeMessagingHosts",
+]
+
+
+def host_executable():
+    """Что запускает браузер. В собранной программе — сам exe; при разработке — bat с python."""
+    if FROZEN:
+        return Path(sys.executable)
+    bat = DATA_DIR / "native-host.bat"
+    py = Path(sys.executable).with_name("python.exe")
+    env = f'@set "TOPICTURE_DATA={os.environ["TOPICTURE_DATA"]}"\r\n' if os.environ.get("TOPICTURE_DATA") else ""
+    bat.write_text(env + f'@"{py}" "{Path(__file__).resolve()}" %*\r\n', encoding="utf-8")
+    return bat
+
+
+def register_extension():
+    import winreg
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    HOST_MANIFEST.write_text(json.dumps({
+        "name": HOST_NAME, "description": "To Picture", "path": str(host_executable()), "type": "stdio",
+        "allowed_origins": [f"chrome-extension://{EXT_ID}/"],
+    }, indent=2), encoding="utf-8")
+    for key in HOST_KEYS:
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key + "\\" + HOST_NAME) as k:
+            winreg.SetValueEx(k, "", 0, winreg.REG_SZ, str(HOST_MANIFEST))
+    return True
+
+
+def unregister_extension():
+    import winreg
+    for key in HOST_KEYS:
+        try:
+            winreg.DeleteKey(winreg.HKEY_CURRENT_USER, key + "\\" + HOST_NAME)
+        except OSError:
+            pass
+    HOST_MANIFEST.unlink(missing_ok=True)
+    (DATA_DIR / "native-host.bat").unlink(missing_ok=True)
+
+
+def extension_registered():
+    """Связь настроена и ведёт именно к этой копии программы."""
+    import winreg
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, HOST_KEYS[0] + "\\" + HOST_NAME) as k:
+            path = Path(winreg.QueryValueEx(k, "")[0])
+        target = json.loads(path.read_text(encoding="utf-8")).get("path", "")
+    except (OSError, ValueError):
+        return False
+    if FROZEN:
+        return os.path.normcase(target) == os.path.normcase(sys.executable)
+    return Path(target).exists()
+
+
+def site_key(url):
+    """youtube.com для www.youtube.com, m.youtube.com и youtu.be."""
+    from urllib.parse import urlparse
+    try:
+        h = (urlparse(url).hostname or "").lower()
+    except ValueError:
+        return ""
+    h = re.sub(r"^(www|m)\.", "", h)
+    return "youtube.com" if h == "youtu.be" else h
+
+
+def netscape_cookies(cookies):
+    """Список cookies от расширения -> формат cookies.txt, который понимает yt-dlp."""
+    lines = ["# Netscape HTTP Cookie File"]
+    for c in cookies or []:
+        try:
+            dom = c["domain"]
+            sub = not c.get("hostOnly")
+            if sub and not dom.startswith("."):
+                dom = "." + dom
+            lines.append("\t".join([("#HttpOnly_" if c.get("httpOnly") else "") + dom, "TRUE" if sub else "FALSE",
+                                    c.get("path") or "/", "TRUE" if c.get("secure") else "FALSE",
+                                    str(int(c.get("expirationDate") or 0)), c["name"], c["value"]]))
+        except (KeyError, TypeError, ValueError):
+            continue
+    return "\n".join(lines) + "\n"
+
+
+# ---- сторона браузера: короткоживущий процесс, который запускает Chrome/Edge
+def _std_io():
+    k = ctypes.windll.kernel32
+    k.GetStdHandle.restype = wintypes.HANDLE
+    hin, hout = k.GetStdHandle(-10), k.GetStdHandle(-11)
+
+    def read(n):
+        out = b""
+        while len(out) < n:
+            buf = ctypes.create_string_buffer(n - len(out))
+            got = wintypes.DWORD()
+            if not k.ReadFile(wintypes.HANDLE(hin), buf, n - len(out), ctypes.byref(got), None) or not got.value:
+                break
+            out += buf.raw[:got.value]
+        return out
+
+    def write(obj):
+        data = json.dumps(obj).encode("utf-8")
+        data = len(data).to_bytes(4, "little") + data
+        done = wintypes.DWORD()
+        k.WriteFile(wintypes.HANDLE(hout), data, len(data), ctypes.byref(done), None)
+        k.FlushFileBuffers(wintypes.HANDLE(hout))
+
+    return read, write
+
+
+def wake_app():
+    """Разбудить открытое окно: оно заберёт ссылки из inbox. False — окна нет."""
+    import socket
+    try:
+        ipc = json.loads(IPC_FILE.read_text(encoding="utf-8"))
+        with socket.create_connection(("127.0.0.1", int(ipc["port"])), timeout=1.5) as s:
+            s.sendall((ipc["token"] + "\n").encode())
+            return s.recv(8) == b"ok"
+    except (OSError, ValueError, KeyError):
+        return False
+
+
+def launch_app():
+    args = [sys.executable] if FROZEN else [str(Path(sys.executable).with_name("pythonw.exe")), str(Path(__file__).resolve())]
+    flags = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    # без сброса новая копия exe унаследует служебные переменные PyInstaller и возьмёт временную папку
+    # этого процесса, которая исчезнет, когда он завершится, — программа упадёт при запуске
+    env = dict(os.environ, PYINSTALLER_RESET_ENVIRONMENT="1")
+    for extra in (0x01000000, 0):    # CREATE_BREAKAWAY_FROM_JOB: браузер не закроет программу вместе с собой
+        try:
+            subprocess.Popen(args, creationflags=flags | extra, close_fds=True, cwd=str(INSTALL_DIR), env=env,
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return True
+        except OSError:
+            continue
+    return False
+
+
+def host_message(m):
+    if not isinstance(m, dict):
+        return {"ok": False, "error": "bad message"}
+    if m.get("type") == "ping":
+        return {"ok": True, "version": APP_VERSION}
+    url = m.get("url") or ""
+    if m.get("type") != "add" or not re.match(r"https?://", url):
+        return {"ok": False, "error": "bad url"}
+    INBOX.mkdir(parents=True, exist_ok=True)
+    name = f"{time.time():.6f}-{os.getpid()}.json"
+    tmp = INBOX / (name + ".tmp")
+    tmp.write_text(json.dumps({"url": url, "title": m.get("title") or "", "cookies": m.get("cookies") or [],
+                               "time": time.time()}, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(INBOX / name)
+    st = load_state()
+    st["ext_seen"] = time.time()
+    save_state(st)
+    if wake_app():
+        return {"ok": True, "launched": False}
+    return {"ok": launch_app(), "launched": True}
+
+
+def native_host():
+    read, write = _std_io()
+    while True:
+        head = read(4)
+        if len(head) < 4:
+            break
+        n = int.from_bytes(head, "little")
+        try:
+            msg = json.loads(read(n).decode("utf-8"))
+            write(host_message(msg))
+        except Exception as e:  # noqa: BLE001
+            write({"ok": False, "error": str(e)})
 
 
 # ---------------------------------------------------------------- JS API
@@ -1017,7 +1669,9 @@ class Api:
         self._lock = threading.Lock()
         self._updater = Updater(self)
         self._gpu = None
-        self._info_cache = {}  # url -> (время, JSON от yt-dlp -J) из превью
+        self._info_cache = {}  # url -> (время, JSON от yt-dlp -J, со входом из браузера) из превью
+        self._browser_cookies = {}  # сайт -> cookies.txt, присланный расширением (только в памяти)
+        self._inbox_lock = threading.Lock()
         self._lang = resolve_lang(load_settings().get("lang", "auto"))
         self._gpu_ready = threading.Event()
 
@@ -1072,53 +1726,161 @@ class Api:
         return True
 
     def preview(self, url):
-        r = run_quiet(["yt-dlp", "-J", "--no-playlist", "--no-warnings", "--", url], 60)
-        if r.returncode == 0:
-            self._info_cache[url] = (time.time(), r.stdout)
+        s = load_settings()
+        with tempfile.TemporaryDirectory(prefix="topicture_pv_") as tmp:
+            try:
+                net = net_args(s, tmp)
+            except CookiesMissing:
+                return {"ok": False, "error": tr(self._lang, "py.err.cookieNoFile"), "raw": "cookies file missing"}
+            # --flat-playlist: у плейлиста и канала — только список видео, без данных каждого (быстро)
+            r = run_quiet(["yt-dlp", "-J", "--flat-playlist", "--no-playlist", "--no-warnings",
+                           *net, "--", url], 180)
+            browser = False
+            bc = self.browser_cookies(url)
+            if r.returncode != 0 and bc and s.get("cookies", "off") == "off" \
+                    and LOGIN_RE.search(r.stderr.decode("utf-8", errors="replace")):
+                # нужен вход — пробуем cookies, которые прислало расширение вместе со ссылкой
+                r = run_quiet(["yt-dlp", "-J", "--flat-playlist", "--no-playlist", "--no-warnings",
+                               *net_args(s, tmp, bc), "--", url], 180)
+                browser = r.returncode == 0
         if r.returncode != 0:
             lines = r.stderr.decode("utf-8", errors="replace").strip().splitlines()
             err = next((l for l in reversed(lines) if l.startswith("ERROR")), lines[-1] if lines else "")
             return {"ok": False, "error": friendly_error(err, self._lang), "raw": err}
         info = json.loads(r.stdout.decode("utf-8", errors="replace"))
+        if info.get("_type") == "playlist":
+            return playlist_data(info, url, self._lang)
+        self._info_cache[url] = (time.time(), r.stdout, browser)
         # публикация без видео и звука (например, пост с картинками) — говорим сразу, а не при скачивании
         if not info.get("formats") and not info.get("url"):
             return {"ok": False, "error": tr(self._lang, "py.err.noVideo"), "raw": "no formats"}
-        vids = [f for f in info.get("formats") or [] if f.get("vcodec") not in (None, "none") and f.get("height")]
-        best = max(vids, key=lambda f: (f["height"], f.get("fps") or 0, f.get("tbr") or 0), default=None)
-        heights = sorted({f["height"] for f in vids})
-        thumb = info.get("thumbnail")
-        is_yt = "youtube" in (info.get("extractor") or "").lower()
-        if info.get("id") and is_yt:
-            thumb = f"https://i.ytimg.com/vi/{info['id']}/hqdefault.jpg"
-            for t in info.get("thumbnails") or []:
-                if "maxresdefault.jpg" in (t.get("url") or ""):
-                    thumb = t["url"]
-        elif thumb:
-            # многие сайты не отдают обложку без «своего» Referer — загружаем её сами и передаём как data:
-            thumb = fetch_thumb(thumb, info.get("webpage_url") or url) or thumb
-        return {
-            "ok": True,
-            "title": info.get("title") or info.get("id") or "",
-            "channel": info.get("uploader") or info.get("channel") or info.get("creator") or "",
-            "duration": info.get("duration"),
-            "views": info.get("view_count"),
-            "date": info.get("upload_date"),
-            "thumb": thumb,
-            "height": best and best["height"],
-            "fps": best and best.get("fps"),
-            "vcodec": best and (best.get("vcodec") or "").split(".")[0],
-            "heights": heights,
-            "vfmts": [{k: f[k] for k in ("h", "fps", "vc", "hdr", "https", "tbr")} for f in video_formats(info)],
-            "tracks": [{"lang": t["lang"], "original": t["original"], "auto": t["auto"]}
-                       for t in audio_tracks(info)],
-            "subs": official_subs(info),
-            "auto_subs": bool(info.get("automatic_captions")),
-            "language": info.get("language"),
-            "audio_only": is_audio_only(info),
-            # домен понятнее внутренних имён yt-dlp («TwitchClips»): vk.com, clips.twitch.tv
-            "site": re.sub(r"^(www|m)\.", "", info.get("webpage_url_domain") or "") or info.get("extractor_key") or "",
-            "youtube": "youtube" in (info.get("extractor") or "").lower(),
-        }
+        d = preview_data(info, url)
+        d["browser_login"] = browser
+        return d
+
+    # ---- расширение для браузера
+    def browser_cookies(self, url):
+        key = site_key(url)
+        for site, text in self._browser_cookies.items():
+            if key == site or key.endswith("." + site) or site.endswith("." + key):
+                return text
+        return None
+
+    def start_ipc(self):
+        """Локальный сокет: процесс, запущенный браузером, будит это окно, и оно забирает ссылки."""
+        import secrets, socket
+        srv = socket.socket()
+        srv.bind(("127.0.0.1", 0))
+        srv.listen(4)
+        token = secrets.token_hex(16)
+        try:
+            DATA_DIR.mkdir(parents=True, exist_ok=True)
+            IPC_FILE.write_text(json.dumps({"port": srv.getsockname()[1], "token": token, "pid": os.getpid()}),
+                                encoding="utf-8")
+        except OSError:
+            return
+
+        def loop():
+            while True:
+                try:
+                    c, _ = srv.accept()
+                except OSError:
+                    return
+                with c:
+                    try:
+                        c.settimeout(2)
+                        if c.recv(64).decode(errors="replace").strip() == token:
+                            c.sendall(b"ok")
+                            self.take_inbox(focus=True)
+                    except OSError:
+                        pass
+        threading.Thread(target=loop, daemon=True).start()
+
+    def stop_ipc(self):
+        try:  # файл указывает на это окно — убираем, чтобы браузер не стучался в закрытое
+            if json.loads(IPC_FILE.read_text(encoding="utf-8")).get("pid") == os.getpid():
+                IPC_FILE.unlink()
+        except (OSError, ValueError):
+            pass
+
+    def links_ready(self):
+        """Интерфейс загрузился: забрать ссылки, пришедшие до этого (браузер запустил программу)."""
+        self._links_ready = True
+        self.take_inbox(focus=False)
+        st = load_state()
+        # установлено с расширением, но им ещё не пользовались — один раз покажем, как его подключить
+        show = extension_registered() and not st.get("ext_seen") and not st.get("ext_help_shown") and EXT_DIR.is_dir()
+        if show:
+            st["ext_help_shown"] = True
+            save_state(st)
+        return {"show_help": show}
+
+    def take_inbox(self, focus=True):
+        if not getattr(self, "_links_ready", False):
+            return
+        with self._inbox_lock:
+            got = []
+            for f in sorted(INBOX.glob("*.json")) if INBOX.is_dir() else []:
+                try:
+                    m = json.loads(f.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    m = None
+                f.unlink(missing_ok=True)  # cookies на диске не задерживаются
+                if not m or time.time() - (m.get("time") or 0) > 3600:
+                    continue
+                if m.get("cookies"):
+                    self._browser_cookies[site_key(m["url"])] = netscape_cookies(m["cookies"])
+                got.append(m)
+        for m in got:
+            self.push({"kind": "ext_link", "url": m["url"], "title": m.get("title") or ""})
+        if got and focus:
+            self.focus_window()
+
+    def focus_window(self):
+        try:
+            w = self._window
+            w.restore()
+            hwnd = int(w.native.Handle.ToInt64())
+            u = ctypes.windll.user32
+            if not u.SetForegroundWindow(hwnd):
+                # Windows не даёт фоновому процессу забрать фокус — мигаем кнопкой на панели задач
+                class FW(ctypes.Structure):
+                    _fields_ = [("cbSize", wintypes.UINT), ("hwnd", wintypes.HWND), ("dwFlags", wintypes.DWORD),
+                                ("uCount", wintypes.UINT), ("dwTimeout", wintypes.DWORD)]
+                fw = FW(ctypes.sizeof(FW), hwnd, 0x3 | 0xC, 3, 0)  # FLASHW_ALL | FLASHW_TIMERNOFG
+                u.FlashWindowEx(ctypes.byref(fw))
+        except Exception:
+            pass
+
+    def ext_status(self):
+        st = load_state()
+        return {"registered": extension_registered(), "folder": str(EXT_DIR), "has_folder": EXT_DIR.is_dir(),
+                "seen": st.get("ext_seen"), "portable": PORTABLE, "id": EXT_ID}
+
+    def ext_register(self):
+        try:
+            register_extension()
+        except OSError:
+            return False
+        return extension_registered()
+
+    def ext_open_folder(self):
+        if EXT_DIR.is_dir():
+            os.startfile(EXT_DIR)
+        return True
+
+    def pause(self, on):
+        job = self._job
+        if job and job.is_alive():
+            job.set_paused(bool(on))
+        return True
+
+    def browse_file(self, current):
+        """Файл cookies.txt."""
+        start = os.path.dirname(current) if current and os.path.isdir(os.path.dirname(current)) else ""
+        res = self._window.create_file_dialog(webview.FileDialog.OPEN, directory=start,
+                                              file_types=("cookies (*.txt)", "All files (*.*)"))
+        return os.path.normpath(res[0]) if res else None
 
     def start(self, urls, opts, overrides=None):
         with self._lock:
@@ -1127,7 +1889,9 @@ class Api:
             clean = dict(DEFAULTS)
             clean.update({k: v for k, v in opts.items() if k in DEFAULTS})
             save_settings(clean)
-            self._job = Job(self, list(urls), clean, overrides or {})
+            items = [u if isinstance(u, dict) else {"url": u} for u in urls]
+            items = [i for i in items if isinstance(i.get("url"), str) and i["url"]]
+            self._job = Job(self, items, clean, overrides or {})
             self._job.start()
             return True
 
@@ -1190,6 +1954,7 @@ class Api:
             pass
 
     def closing(self):
+        self.stop_ipc()
         job = self._job
         if job and job.is_alive():
             job.cancel()
@@ -1206,6 +1971,13 @@ def system_dark():
 
 
 def main():
+    args = sys.argv[1:]
+    if any(a.startswith("chrome-extension://") for a in args):
+        return native_host()  # запущено браузером по просьбе расширения
+    if "--register-extension" in args:
+        return register_extension()
+    if "--unregister-extension" in args:
+        return unregister_extension()
     api = Api()
     theme = load_settings().get("theme", "system")
     dark = theme == "dark" or (theme == "system" and system_dark())
@@ -1215,6 +1987,7 @@ def main():
         text_select=False,
     )
     api.attach(window)
+    api.start_ipc()
     window.events.closing += api.closing
     try:  # своя кнопка на панели задач, а не общая с python.exe
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("ToPicture.App")

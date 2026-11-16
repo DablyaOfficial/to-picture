@@ -115,6 +115,7 @@ textarea#urls::placeholder { color:var(--text3); }
 }
 .thumb img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity .15s; }
 .thumb img.on { opacity:1; }
+.thumb img:not([src]) { visibility:hidden; }
 .thumb .center { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text3); }
 .chip {
   position:absolute; right:6px; bottom:6px; padding:0 5px; height:18px; line-height:18px; border-radius:3px;
@@ -182,6 +183,19 @@ textarea#urls::placeholder { color:var(--text3); }
 .sk { height:12px; border-radius:2px; background:var(--sunken); }
 .pv-url { font-family:var(--mono); font-size:11px; line-height:16px; color:var(--text3); }
 .pv-err { margin-top:2px; color:var(--err); }
+/* фрагмент: начало и конец */
+.trpop { position:fixed; z-index:10; width:300px; padding:12px; background:var(--surface); border:1px solid var(--line-strong); border-radius:6px; display:flex; flex-direction:column; gap:10px; font-size:12px; line-height:16px; }
+.trpop .tr-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.trpop label { display:flex; flex-direction:column; gap:4px; color:var(--text2); }
+.trpop .tr-msg { color:var(--text3); min-height:16px; }
+.trpop .tr-msg.err { color:var(--err); }
+.trpop .tr-foot { display:flex; align-items:center; gap:8px; justify-content:flex-end; }
+.trpop .tr-foot .btn { height:28px; }
+/* список видео плейлиста */
+.tmenu.pl { width:420px; }
+.tmenu .mi .pn { width:28px; flex:none; text-align:right; font-size:12px; color:var(--text3); }
+.tmenu .mi .pt { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.tmenu .mi .pd { flex:none; font-size:12px; color:var(--text3); }
 
 /* ---------- collapsible sections ---------- */
 .csec { border-top:1px solid var(--line); }
@@ -200,6 +214,17 @@ textarea#urls::placeholder { color:var(--text3); }
 }
 .grid .lab { color:var(--text2); }
 .grid .wide { grid-column:2 / -1; }
+.gsub { grid-column:1 / -1; margin-top:6px; font-size:12px; line-height:16px; color:var(--text3); }
+.tfield {
+  width:100%; height:32px; padding:0 10px; background:var(--surface); border:1px solid var(--line-strong); border-radius:4px;
+  font:inherit; color:var(--text); min-width:0; outline:none; user-select:text;
+}
+.tfield.mono { font-family:var(--mono); font-size:12px; }
+.tfield:hover { border-color:var(--text3); }
+.tfield:focus { border-color:var(--focus); box-shadow:0 0 0 1px var(--focus); }
+.tfield:disabled { background:var(--sunken); border-color:var(--line); color:var(--text3); }
+.tfield::placeholder { color:var(--text3); }
+.field.empty { color:var(--text3); }
 .field {
   height:32px; display:flex; align-items:center; padding:0 10px; background:var(--surface); border:1px solid var(--line-strong);
   border-radius:4px; min-width:0;
@@ -258,6 +283,7 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
 .row-top { display:flex; align-items:baseline; gap:12px; min-width:0; }
 .row-label { display:flex; align-items:center; gap:6px; flex:none; font-weight:600; }
 .row-label svg { color:var(--text2); }
+.row-label .num { font-weight:400; font-size:12px; color:var(--text3); }
 .steps { display:flex; align-items:baseline; gap:6px; font-size:12px; min-width:0; overflow:hidden; white-space:nowrap; }
 .steps .sep { color:var(--text3); }
 .steps .s-done { color:var(--text2); }
@@ -300,6 +326,28 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
 .logbox div { color:var(--text2); white-space:pre-wrap; word-break:break-all; }
 .logbox .c { color:var(--text); }
 .logbox .e { color:var(--err); }
+
+/* ---------- окно «Расширение для браузера» ---------- */
+.modal { position:fixed; inset:0; z-index:30; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(0,0,0,.32); }
+.mbox { width:560px; max-width:100%; max-height:100%; overflow-y:auto; background:var(--surface); border:1px solid var(--line-strong); border-radius:8px; padding:16px 20px 18px; display:flex; flex-direction:column; gap:12px; }
+.mhead { display:flex; align-items:center; gap:8px; }
+.mhead .mt { font-size:15px; line-height:20px; font-weight:600; flex:1; }
+.mlead { color:var(--text2); margin:0; }
+.mstat { display:flex; align-items:center; gap:10px; min-height:32px; padding:6px 10px; border:1px solid var(--line); border-radius:4px; background:var(--raised); }
+.mstat .dot { width:8px; height:8px; border-radius:50%; flex:none; background:var(--text3); }
+.mstat.ok .dot { background:#3A8A3F; }
+.mstat .st { flex:1; min-width:0; }
+.mstat .st b { font-weight:600; }
+.mstat .st span { color:var(--text2); }
+.msteps { margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px; counter-reset:st; }
+.msteps li { display:grid; grid-template-columns:22px minmax(0,1fr); column-gap:8px; row-gap:6px; counter-increment:st; }
+.msteps li::before { content:counter(st); width:20px; height:20px; border-radius:50%; border:1px solid var(--line-strong); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text2); font-variant-numeric:tabular-nums; }
+.msteps .sx { grid-column:2; }
+.msteps .sub { grid-column:2; font-size:12px; line-height:16px; color:var(--text3); }
+.mrow { grid-column:2; display:flex; gap:8px; align-items:center; min-width:0; flex-wrap:wrap; }
+.mrow .field { flex:1 1 200px; min-width:0; font-family:var(--mono); font-size:12px; white-space:nowrap; overflow:hidden; }
+.kbd { font-family:var(--mono); font-size:12px; padding:2px 6px; border-radius:3px; background:var(--sunken); border:1px solid var(--line); user-select:text; }
+.mfoot { font-size:12px; line-height:16px; color:var(--text3); border-top:1px solid var(--line); padding-top:10px; }
 
 /* ---------- footer ---------- */
 .foot { height:56px; flex:none; border-top:1px solid var(--line); display:flex; align-items:center; gap:8px; padding:0 20px; }
@@ -384,8 +432,8 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
 
         <span class="lab x264" data-i18n="set.speed"></span>
         <div class="x264" data-select="preset"></div>
-        <span class="lab x264" data-i18n="set.sound"></span>
-        <div class="x264" data-select="audio"></div>
+        <span class="lab abr" data-i18n="set.sound"></span>
+        <div class="abr" data-select="audio"></div>
 
         <span class="lab gpu-on" data-i18n="set.encoder"></span>
         <div class="gpu-on" data-select="encoder"></div>
@@ -395,11 +443,34 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
         <div data-select="audio_lang"></div>
         <span class="hint2" data-i18n="set.audioHint"></span>
 
-        <span class="lab" data-i18n="set.subs"></span>
-        <div data-select="subs"></div>
-        <span class="lab subs-on" data-i18n="set.subsLang"></span>
-        <div class="subs-on" data-select="subs_lang"></div>
-        <span class="hint2 subs-off" data-i18n="set.subsOffHint"></span>
+        <span class="lab vid-only" data-i18n="set.subs"></span>
+        <div class="vid-only" data-select="subs"></div>
+        <span class="lab subs-on vid-only" data-i18n="set.subsLang"></span>
+        <div class="subs-on vid-only" data-select="subs_lang"></div>
+        <span class="hint2 subs-off vid-only" data-i18n="set.subsOffHint"></span>
+
+        <span class="lab" data-i18n="set.name"></span>
+        <div data-select="name_tpl"></div>
+        <span class="lab" data-i18n="set.queue"></span>
+        <div data-select="parallel"></div>
+
+        <span class="lab" data-i18n="set.sponsor"></span>
+        <div data-select="sponsorblock"></div>
+        <span class="hint2" data-i18n="set.sponsorHint"></span>
+
+        <span class="gsub" data-i18n="set.net"></span>
+        <span class="lab" data-i18n="set.cookies"></span>
+        <div data-select="cookies"></div>
+        <span class="hint2" id="cookiesHint"></span>
+        <span class="lab ck-file"></span>
+        <div class="wide folder ck-file">
+          <div class="field" id="cookiesFile"></div>
+          <button class="btn" id="bCookies" data-i18n="set.browse"></button>
+        </div>
+        <span class="lab" data-i18n="set.proxy"></span>
+        <div><input class="tfield mono" id="proxy" spellcheck="false" autocomplete="off" placeholder="socks5://127.0.0.1:1080"></div>
+        <span class="lab" data-i18n="set.rate"></span>
+        <div data-select="rate_limit"></div>
       </div>
     </section>
 
@@ -447,8 +518,27 @@ input[type=range]:disabled::-webkit-slider-thumb { background:radial-gradient(ci
   <footer class="foot">
     <span class="hint" id="hint"></span>
     <button class="btn" id="bFolder" disabled data-i18n="btn.folder"></button>
+    <button class="btn hidden" id="bPause"></button>
     <button class="btn primary" id="bMain" disabled data-i18n="btn.download"></button>
   </footer>
+</div>
+
+<div class="modal hidden" id="extModal" role="dialog" aria-modal="true" aria-labelledby="extTitle">
+  <div class="mbox">
+    <div class="mhead"><span class="mt" id="extTitle" data-i18n="ext.title"></span><button class="tbtn" id="extClose" data-i18n="ext.close"></button></div>
+    <p class="mlead" data-i18n="ext.lead"></p>
+    <div class="mstat" id="extStat"><span class="dot"></span><span class="st" id="extStatText"></span><button class="btn hidden" id="extConnect" data-i18n="ext.connect"></button></div>
+    <ol class="msteps">
+      <li><span class="sx" data-i18n="ext.s1"></span>
+        <div class="mrow"><span class="kbd">chrome://extensions</span><button class="tbtn" data-copy="chrome://extensions" data-i18n="ext.copy"></button>
+          <span class="kbd">edge://extensions</span><button class="tbtn" data-copy="edge://extensions" data-i18n="ext.copy"></button></div>
+        <span class="sub" data-i18n="ext.s1sub"></span></li>
+      <li><span class="sx" data-i18n="ext.s2"></span></li>
+      <li><span class="sx" data-i18n="ext.s3"></span>
+        <div class="mrow"><div class="field" id="extPath"></div><button class="btn" id="extCopyPath" data-i18n="ext.copyPath"></button><button class="btn" id="extOpen" data-i18n="ext.openFolder"></button></div></li>
+    </ol>
+    <div class="mfoot" data-i18n="ext.foot"></div>
+  </div>
 </div>
 
 <script>
@@ -500,6 +590,10 @@ function buildOpts() {
       { v:'prores', l:'ProRes 422', h:t('codec.prores.h'), mh:t('codec.prores.mh'), name:'ProRes 422' },
       { sep:true },
       { v:'copy', l:t('codec.copy.l'), h:t('codec.copy.h'), mh:t('codec.copy.mh'), name:'' },
+      { sep:true },
+      { v:'mp3', l:'MP3', h:t('codec.audio.h'), mh:t('codec.mp3.mh'), name:'MP3' },
+      { v:'flac', l:'FLAC', h:t('codec.audio.h'), mh:t('codec.flac.mh'), name:'FLAC' },
+      { v:'m4a', l:'M4A', h:t('codec.audio.h'), mh:t('codec.m4a.mh'), name:'M4A' },
     ],
     max_height: [
       { v:'best', l:t('res.best') }, { v:'2160', l:'2160p' }, { v:'1440', l:'1440p' },
@@ -511,7 +605,28 @@ function buildOpts() {
       { v:'medium', l:'medium', h:t('preset.medium') }, { v:'slow', l:'slow', h:t('preset.slow') },
       { v:'slower', l:'slower', h:'' }, { v:'veryslow', l:'veryslow', h:t('preset.veryslow') },
     ],
-    audio: ['128', '192', '256', '320'].map(n => ({ v: n + 'k', l: t('audio.kbps', { n }) })),
+    audio: audioOpts(),
+    name_tpl: [
+      { v:'title', l:t('name.title') }, { v:'channel_title', l:t('name.channel_title') },
+      { v:'date_title', l:t('name.date_title') }, { v:'title_id', l:t('name.title_id') },
+    ],
+    parallel: [
+      { v:'on', l:t('par.on'), mh:t('par.on.mh') }, { v:'off', l:t('par.off'), mh:t('par.off.mh') },
+    ],
+    sponsorblock: [
+      { v:'off', l:t('sb.off') },
+      { v:'remove', l:t('sb.remove'), mh:t('sb.remove.mh') },
+      { v:'mark', l:t('sb.mark'), mh:t('sb.mark.mh') },
+    ],
+    cookies: [
+      { v:'off', l:t('ck.off') },
+      { v:'firefox', l:'Firefox', mh:t('ck.firefox.mh') },
+      { v:'file', l:t('ck.file'), mh:t('ck.file.mh') },
+    ],
+    rate_limit: [
+      { v:'off', l:t('rate.off') },
+      ...['1', '2', '5', '10', '25'].map(n => ({ v: n + 'M', l: t('rate.n', { n }) })),
+    ],
     theme: [
       { v:'system', l:t('theme.system') }, { v:'light', l:t('theme.light') }, { v:'dark', l:t('theme.dark') },
     ],
@@ -542,6 +657,13 @@ function buildOpts() {
     ],
   };
 }
+// битрейт звука: AAC для видео и M4A, MP3 — для MP3
+function audioOpts() {
+  const key = S.settings && S.settings.codec === 'mp3' ? 'audio.kbpsMp3' : 'audio.kbps';
+  return ['128', '192', '256', '320'].map(n => ({ v: n + 'k', l: t(key, { n }) }));
+}
+const AUDIO_OUT = ['mp3', 'flac', 'm4a'];
+const isAudioOut = () => AUDIO_OUT.includes(S.settings.codec);
 const DEF_AUDIO = 'orig_ui', DEF_SUBS = 'embed';
 let DEF_SUBS_LANG = 'ui_en';
 // при английском интерфейсе «язык интерфейса + английский» = просто английский
@@ -616,8 +738,12 @@ const S = {
   cur: -1, total: 0,
   dl: null, tc: null, rowsShown: false,
   lastFile: null, lastSize: 0,
-  preview: { cache: new Map(), gen: 0, timer: 0, shownUrl: null },
+  preview: { cache: new Map(), done: new Map(), gen: 0, timer: 0, shownUrl: null },
   audioOverride: new Map(),   // url -> язык озвучки, выбранный в превью для конкретного видео
+  trim: new Map(),            // url -> [начало, конец|null] — скачать только фрагмент
+  plSel: new Map(),           // url плейлиста -> Set номеров отмеченных видео (нет записи — все)
+  runLabels: [], runItems: [], srcUrls: [], plans: {},
+  paused: false, preparing: false, locked: false,
   logLines: 0, logLast: '', versions: '',
   missing: [],
 };
@@ -631,7 +757,7 @@ function makeSelect(host, key, src) {
   src = src || {
     options: () => OPTS[key],
     get: () => S.settings[key],
-    set: (v) => { S.settings[key] = v; onSettingsChanged(); },
+    set: (v) => { S.settings[key] = v; onSettingsChanged(); if (key === 'cookies') onNetChanged(); },
   };
   const btn = document.createElement('button');
   btn.className = 'select';
@@ -738,13 +864,19 @@ function settingsSummary() {
   const parts = [];
   if (s.codec === 'h264' || s.codec === 'h265') parts.push(c.l + (useGpu() ? ' · ' + S.gpu.short : ''), `CRF ${s.crf}`, s.preset, optOf('audio', s.audio).l);
   else if (s.codec === 'prores') parts.push('ProRes 422', 'PCM');
+  else if (s.codec === 'flac') parts.push(t('sum.audioOnly', { f: 'FLAC' }));
+  else if (isAudioOut()) parts.push(t('sum.audioOnly', { f: s.codec.toUpperCase() }), optOf('audio', s.audio).l);
   else parts.push(t('sum.noReencode'));
-  parts.push(res);
+  if (!isAudioOut()) parts.push(res);
   // озвучка и субтитры — только если отличаются от умолчаний, перед папкой (папка обрезается первой)
   if (s.audio_lang !== DEF_AUDIO) parts.push(t('sum.audio', { v: lc(optOf('audio_lang', s.audio_lang).l) }));
   if (s.subs === 'off') parts.push(t('sum.noSubs'));
   else if (s.subs !== DEF_SUBS || s.subs_lang !== DEF_SUBS_LANG)
     parts.push(t('sum.subs', { v: lc(optOf('subs_lang', s.subs_lang).l) + (s.subs === 'embed_srt' ? ' + .srt' : '') }));
+  if (s.sponsorblock !== 'off') parts.push(t('sum.sb.' + s.sponsorblock));
+  if (s.cookies !== 'off') parts.push(t('sum.cookies', { v: s.cookies === 'firefox' ? 'Firefox' : 'cookies.txt' }));
+  if ((s.proxy || '').trim()) parts.push(t('sum.proxy'));
+  if (s.rate_limit !== 'off') parts.push(t('sum.rate', { n: parseInt(s.rate_limit) }));
   parts.push(s.out_dir);
   return parts.join(' · ');
 }
@@ -752,10 +884,13 @@ function codecDesc() {
   const s = S.settings;
   if (s.codec === 'h264' || s.codec === 'h265') return t('desc.codec', { codec: optOf('codec', s.codec).l, gpu: useGpu() ? t('desc.onGpu') : '', crf: s.crf, preset: s.preset });
   if (s.codec === 'prores') return 'ProRes 422, PCM';
+  if (s.codec === 'flac') return 'FLAC';
+  if (isAudioOut()) return optOf('audio', s.audio).l.replace('AAC', s.codec === 'm4a' ? 'M4A AAC' : 'AAC');
   return t('desc.noReencode');
 }
 function renderSettings() {
   const s = S.settings;
+  OPTS.audio = audioOpts();
   Object.values(selects).forEach(x => x.render());
   const crf = $('crf');
   crf.value = s.crf;
@@ -768,8 +903,18 @@ function renderSettings() {
   $('encHint').textContent = s.encoder === 'gpu'
     ? t('enc.hintGpu', { gpu: S.gpu ? S.gpu.vendor + ' ' + S.gpu.short : '' })
     : t('enc.hintCpu');
-  document.querySelectorAll('.subs-on').forEach(e => e.classList.toggle('hidden', s.subs === 'off'));
-  document.querySelectorAll('.subs-off').forEach(e => e.classList.toggle('hidden', s.subs !== 'off'));
+  const aOut = isAudioOut();
+  document.querySelectorAll('.abr').forEach(e => e.classList.toggle('hidden', !(x264 || s.codec === 'mp3' || s.codec === 'm4a')));
+  document.querySelectorAll('.vid-only').forEach(e => e.classList.toggle('hidden', aOut));
+  document.querySelectorAll('.subs-on').forEach(e => e.classList.toggle('hidden', aOut || s.subs === 'off'));
+  document.querySelectorAll('.subs-off').forEach(e => e.classList.toggle('hidden', aOut || s.subs !== 'off'));
+  selects.max_height.btn.disabled = S.locked || aOut;
+  document.querySelectorAll('.ck-file').forEach(e => e.classList.toggle('hidden', s.cookies !== 'file'));
+  $('cookiesHint').textContent = t('ck.hint.' + s.cookies);
+  const cf = $('cookiesFile');
+  cf.classList.toggle('empty', !s.cookies_file);
+  if (s.cookies === 'file') s.cookies_file ? fitMiddle(cf, s.cookies_file) : (cf.textContent = t('ck.noFile'), cf.title = '');
+  if (document.activeElement !== $('proxy')) $('proxy').value = s.proxy || '';
   fitMiddle($('outDir'), s.out_dir);
   const sum = settingsSummary();
   $('setSum').textContent = sum;
@@ -800,11 +945,20 @@ function setSettingsOpen(v) {
   onSettingsChanged();
 }
 function lockSettings(lock) {
+  S.locked = lock;
   $('setSec').classList.toggle('ro-lock', lock);
   Object.values(selects).forEach(x => x.btn.disabled = lock);
-  document.querySelectorAll('#pvAudio .mbtn, #pvAudio .reset').forEach(b => b.disabled = lock);
+  if (!lock && isAudioOut()) selects.max_height.btn.disabled = true;
+  document.querySelectorAll('#pvAudio .mbtn, #pvAudio .reset, #pvTrim, #pvPlBtn').forEach(b => b.disabled = lock);
   $('crf').disabled = lock;
   $('bBrowse').disabled = lock;
+  $('bCookies').disabled = lock;
+  $('proxy').disabled = lock;
+}
+// вход и прокси меняют то, что сайт отдаёт, — превью с ошибкой («нужен вход») пробуем заново
+function onNetChanged() {
+  for (const [u, d] of S.preview.done) if (!d || !d.ok) { S.preview.done.delete(u); S.preview.cache.delete(u); }
+  if (!S.preview.shownData) { S.preview.shownUrl = null; schedulePreview(); }
 }
 
 // ---------------------------------------------------------------- link list
@@ -832,7 +986,7 @@ function syncGutter() {
 }
 function renderUrlList() {
   $('urlList').innerHTML = S.runUrls.map((u, i) =>
-    `<div class="${S.lineState[i] === 'done' ? 'done' : ''}" title="${esc(u)}">${esc(u)}</div>`).join('');
+    `<div class="${S.lineState[i] === 'done' ? 'done' : ''}" title="${esc(u)}">${esc(S.runLabels[i] || u)}</div>`).join('');
 }
 function setListMode(on) {
   S.listMode = on;
@@ -860,7 +1014,7 @@ function appendText(text) {
 function onListChanged() {
   // выбор озвучки живёт вместе со строкой ссылки: убрали или изменили строку — выбор сбрасывается
   const live = new Set(validUrls());
-  for (const u of [...S.audioOverride.keys()]) if (!live.has(u)) S.audioOverride.delete(u);
+  for (const m of [S.audioOverride, S.trim, S.plSel]) for (const u of [...m.keys()]) if (!live.has(u)) m.delete(u);
   renderGutter();
   updateButtons();
   schedulePreview();
@@ -874,7 +1028,8 @@ function schedulePreview() {
 }
 function getPreview(url) {
   const c = S.preview.cache;
-  if (!c.has(url)) c.set(url, api.preview(url).catch(e => ({ ok: false, error: t('pv.fetchFailed') })));
+  if (!c.has(url)) c.set(url, api.preview(url).catch(e => ({ ok: false, error: t('pv.fetchFailed') }))
+    .then(d => { S.preview.done.set(url, d); return d; }));
   return c.get(url);
 }
 async function showPreviewFor(url, fromEdit) {
@@ -891,6 +1046,7 @@ async function showPreviewFor(url, fromEdit) {
   if (gen !== S.preview.gen) return;
   if (!data || !data.ok) {
     S.preview.cache.delete(url);   // ошибку не кешируем — можно попробовать ещё раз
+    S.preview.done.delete(url);
     S.preview.shownData = null;
     return renderPreviewState('error', { err: data?.error || t('pv.fetchFailed'), url });
   }
@@ -922,13 +1078,14 @@ function selectVideo(d) {
   const v = d.vfmts || [];
   if (!v.length) return { f: d.height ? { h: d.height, fps: Math.round(d.fps || 0), vc: d.vcodec, hdr: false } : null, copy: false };
   const s = S.settings, lim = s.max_height === 'best' ? 0 : +s.max_height;
+  const trimmed = d.url && S.trim.has(d.url);   // фрагмент режется точно по кадру — H.264 с сайта перекодируется
   const pool = v.filter(f => !lim || f.h <= lim).length ? v.filter(f => !lim || f.h <= lim) : v;
   const better = (a, b) => (a.h - b.h) || (a.fps - b.fps) || (a.https - b.https) || (a.tbr - b.tbr);
   const best = (list) => list.reduce((a, b) => better(a, b) >= 0 ? a : b);
   if (s.codec === 'copy') return { f: best(pool), copy: false };
   const sdr = pool.filter(f => !f.hdr).length ? pool.filter(f => !f.hdr) : pool;
   const b = best(sdr);
-  if (s.codec === 'h264') {
+  if (s.codec === 'h264' && !trimmed) {
     const avc = sdr.filter(f => f.vc.startsWith('avc1') && f.h === b.h && f.fps === b.fps);
     if (avc.length) return { f: best(avc), copy: true };
   }
@@ -936,6 +1093,8 @@ function selectVideo(d) {
 }
 function outputLabel(d) {
   const s = S.settings;
+  if (s.codec === 'flac') return 'FLAC';
+  if (isAudioOut()) return `${s.codec.toUpperCase()} · ${optOf('audio', s.audio).l.replace(/^\S+\s/, '')}`;
   if (d.audio_only) return 'M4A';
   const { f, copy } = selectVideo(d);
   const q = f ? qTag(f.h, f.fps) : '';
@@ -945,8 +1104,8 @@ function outputLabel(d) {
   const box = subsChosen(d).length || s.codec === 'copy' ? 'MKV' : s.codec === 'prores' ? 'MOV' : 'MP4';
   return [copy ? '' : q, c, box].filter(Boolean).join(' · ');
 }
-function renderPreview(d) {
-  const img = $('pvImg'), msg = $('pvThumbMsg'), dur = $('pvDur');
+function setThumb(d) {
+  const img = $('pvImg'), msg = $('pvThumbMsg');
   msg.innerHTML = '';
   if (d.thumb) {
     if (img.getAttribute('src') !== d.thumb) {
@@ -956,6 +1115,11 @@ function renderPreview(d) {
       img.src = d.thumb;
     } else img.classList.add('on');
   } else msg.textContent = t('pv.noThumb');
+}
+function renderPreview(d) {
+  if (d.playlist) return renderPlaylist(d);
+  const dur = $('pvDur');
+  setThumb(d);
   if (d.duration) { dur.textContent = fmtTime(d.duration); dur.classList.remove('hidden'); } else dur.classList.add('hidden');
   // для не-YouTube — домен сайта первым; канал не дублируем, если он совпадает с сайтом («instagram.com · Instagram»)
   const site = d.youtube === false ? d.site : '';
@@ -969,12 +1133,141 @@ function renderPreview(d) {
     <div style="flex:1"></div>
     <div class="pv-grid">
       <span class="k">${esc(t('pv.video'))}</span>
-      <div class="v">${src ? `<span class="b val">${esc(src)}</span><span class="arrow">→</span>` : ''}<span class="shrink">${esc(outputLabel(d))}</span></div>
+      <div class="v">${src ? `<span class="b val">${esc(src)}</span><span class="arrow">→</span>` : ''}<span class="shrink">${esc(outputLabel(d))}</span>${trimBtn(d)}</div>
       <span class="k" id="pvAudioK">${esc(t('pv.audio'))}</span><div class="v" id="pvAudio"></div>
       <span class="k">${esc(t('pv.subs'))}</span><div class="v" id="pvSubs"></div>
     </div>`;
   renderAudioCell(d);
   renderSubsCell(d);
+  wireTrim(d);
+}
+
+// ---- фрагмент
+function parseTime(v) {
+  v = String(v || '').trim().replace(',', '.');
+  if (!v) return null;
+  if (!/^\d+(:\d{1,2}){0,2}(\.\d+)?$/.test(v)) return NaN;
+  return v.split(':').reduce((a, x) => a * 60 + parseFloat(x), 0);
+}
+function trimBtn(d) {
+  const tr = S.trim.get(d.url);
+  const label = tr ? `${fmtTime(tr[0])}–${tr[1] != null ? fmtTime(tr[1]) : fmtTime(d.duration) || '…'}` : t('pv.trim');
+  return `<button class="tbtn reset" id="pvTrim" ${tr ? 'style="font-weight:600;color:var(--text)"' : ''} title="${esc(t('pv.trimTip'))}">${esc(label)}</button>`;
+}
+function wireTrim(d) {
+  const b = $('pvTrim');
+  if (!b) return;
+  b.disabled = S.running;
+  b.addEventListener('click', () => (openMenu && openMenu.anchor === b) ? closeMenu() : showTrimPop(b, d));
+}
+function showTrimPop(anchor, d) {
+  closeMenu();
+  const tr = S.trim.get(d.url);
+  const m = document.createElement('div');
+  m.className = 'trpop';
+  const note = S.settings.codec === 'copy' ? t('tr.noteCopy') : t('tr.note');
+  m.innerHTML = `
+    <div class="tr-row">
+      <label>${esc(t('tr.start'))}<input class="tfield mono" id="trS" value="${tr ? fmtTime(tr[0]) : '0:00'}" spellcheck="false"></label>
+      <label>${esc(t('tr.end'))}<input class="tfield mono" id="trE" value="${tr && tr[1] != null ? fmtTime(tr[1]) : ''}" placeholder="${esc(d.duration ? fmtTime(d.duration) : t('tr.endPh'))}" spellcheck="false"></label>
+    </div>
+    <div class="tr-msg" id="trMsg">${esc(note)}</div>
+    <div class="tr-foot">
+      ${tr ? `<button class="tbtn" id="trAll">${esc(t('tr.all'))}</button>` : ''}
+      <button class="btn" id="trOk">${esc(t('tr.ok'))}</button>
+    </div>`;
+  placePopup(m, anchor, 300);
+  const r = anchor.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.right - 300, innerWidth - 308)) + 'px';
+  if (r.bottom + 4 + m.offsetHeight > innerHeight - 8) m.style.top = (r.top - m.offsetHeight - 4) + 'px';
+  const apply = () => {
+    const a = parseTime($('trS').value) ?? 0, b = parseTime($('trE').value);
+    const bad = isNaN(a) || (b != null && (isNaN(b) || b <= a)) || (d.duration && a >= d.duration);
+    if (bad) { $('trMsg').textContent = t('tr.bad'); $('trMsg').classList.add('err'); return; }
+    const end = b != null && d.duration && b >= d.duration ? null : b;
+    if (!a && end == null) S.trim.delete(d.url); else S.trim.set(d.url, [a, end]);
+    closeMenu(); renderPreview(d); $('pvTrim')?.focus();
+  };
+  $('trOk').addEventListener('click', apply);
+  $('trAll')?.addEventListener('click', () => { S.trim.delete(d.url); closeMenu(); renderPreview(d); $('pvTrim')?.focus(); });
+  registerPopup(m, anchor, (e) => { if (e.key === 'Enter') { e.preventDefault(); apply(); } });
+  $('trS').focus(); $('trS').select();
+}
+
+// ---- плейлист или канал: список видео, все скачиваются в одну папку
+function plSelected(d) {
+  const sel = S.plSel.get(d.url);
+  return sel ? sel : new Set(d.entries.map((_, i) => i));
+}
+function renderPlaylist(d) {
+  setThumb(d);
+  const dur = $('pvDur');
+  dur.textContent = t('pl.count', { n: d.count }); dur.classList.remove('hidden');
+  const byline = [d.site, d.channel && d.channel !== d.title ? d.channel : '', d.duration ? fmtTime(d.duration) : ''].filter(Boolean).join(' · ');
+  const n = plSelected(d).size;
+  const label = n === d.count ? t('pl.all', { n }) : t('pl.some', { a: n, b: d.count });
+  const s = S.settings;
+  const audio = isAudioOut() ? '—' : lc(optOf('audio_lang', s.audio_lang).l);
+  const subs = isAudioOut() || s.subs === 'off' ? t('pv.none') : lc(optOf('subs_lang', s.subs_lang).l);
+  $('pvMeta').innerHTML = `
+    <div class="pv-title" title="${esc(d.title)}">${esc(d.title)}</div>
+    <div class="pv-channel ell tab" title="${esc(byline)}">${esc(byline)}</div>
+    <div style="flex:1"></div>
+    <div class="pv-grid">
+      <span class="k">${esc(t('pv.video'))}</span>
+      <div class="v"><button class="mbtn" id="pvPlBtn" aria-haspopup="listbox">${esc(label)}${CHEV_SM}</button><span class="note" title="${esc(t('pl.folder', { name: d.title }))}">${esc(t('pl.folder', { name: d.title }))}</span></div>
+      <span class="k">${esc(t('pl.files'))}</span>
+      <div class="v"><span class="shrink">${esc(outputLabel({ vfmts: [], tracks: [], subs: [] }))}</span></div>
+      <span class="k">${esc(t('pv.audio'))}</span>
+      <div class="v"><span class="shrink">${esc(audio)}</span><span class="note">· ${esc(t('pv.subs').toLocaleLowerCase(LANG))}: ${esc(subs)}</span></div>
+    </div>`;
+  const btn = $('pvPlBtn');
+  btn.disabled = S.running;
+  btn.addEventListener('click', () => (openMenu && openMenu.anchor === btn) ? closeMenu() : showPlaylistMenu(btn, d));
+}
+function showPlaylistMenu(anchor, d) {
+  closeMenu();
+  const m = document.createElement('div');
+  m.className = 'tmenu pl';
+  m.setAttribute('role', 'listbox');
+  m.setAttribute('aria-multiselectable', 'true');
+  const pad = String(d.count).length;
+  m.innerHTML = `
+    <div class="mi" data-act="all">${MENU_CK}<span class="tab">${esc(t('pl.menuAll', { n: d.count }))}</span></div>
+    <div class="msep"></div>
+    <div class="list">${d.entries.map((e, i) => `<div class="mi" data-i="${i}" role="option">${MENU_CK}<span class="pn tab">${String(i + 1).padStart(pad, '0')}</span><span class="pt" title="${esc(e.title || e.url)}">${esc(e.title || e.url)}</span><span class="pd tab">${e.duration ? fmtTime(e.duration) : ''}</span></div>`).join('')}</div>
+    <div class="foot">${esc(t('pl.foot'))}</div>`;
+  placePopup(m, anchor, 420);
+  const top = anchor.getBoundingClientRect().bottom + 4;
+  m.querySelector('.list').style.maxHeight = Math.max(120, innerHeight - top - 8 - (32 + 9 + 30 + 8)) + 'px';
+  const items = [...m.querySelectorAll('.mi')];
+  let hl = 0;
+  const setHl = (i) => { hl = i; items.forEach((x, k) => x.classList.toggle('hl', k === i)); items[i]?.scrollIntoView({ block: 'nearest' }); };
+  const sync = () => {
+    const sel = plSelected(d);
+    items.forEach(x => x.classList.toggle('sel', x.dataset.act === 'all' ? sel.size === d.count : sel.has(+x.dataset.i)));
+  };
+  const apply = (x) => {
+    let sel = new Set(plSelected(d));
+    if (x.dataset.act === 'all') sel = sel.size === d.count ? new Set([0]) : new Set(d.entries.map((_, i) => i));
+    else { const i = +x.dataset.i; if (sel.has(i)) { if (sel.size === 1) return; sel.delete(i); } else sel.add(i); }
+    sel.size === d.count ? S.plSel.delete(d.url) : S.plSel.set(d.url, sel);
+    renderPlaylist(d);
+    const nb = $('pvPlBtn');
+    if (openMenu) { openMenu.anchor = nb; openMenu.sel.btn = nb; nb?.classList.add('open'); }
+    sync();
+  };
+  items.forEach((x, i) => { x.addEventListener('mousemove', () => setHl(i)); x.addEventListener('click', () => apply(x)); });
+  sync(); setHl(0);
+  registerPopup(m, anchor, (e) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHl(Math.min(items.length - 1, hl + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHl(Math.max(0, hl - 1)); }
+    else if (e.key === 'Home') { e.preventDefault(); setHl(0); }
+    else if (e.key === 'End') { e.preventDefault(); setHl(items.length - 1); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (items[hl]) apply(items[hl]); }
+    else if (e.key === 'Tab') closeMenu();
+    e.stopPropagation();
+  });
 }
 
 // ---- выбор дорожек (повторяет pick_audio / pick_subs из ToPicture.pyw)
@@ -1023,6 +1316,7 @@ function renderAudioCell(d) {
   const { tracks, ov, rule, cur } = currentAudio(d);
   if (tracks.length <= 1) {
     const known = tracks.length && tracks[0].lang !== 'und';
+    $('pvAudioK').classList.remove('hidden'); cell.classList.remove('hidden');
     // одна дорожка — просто язык; язык неизвестен — строку не показываем
     $('pvAudioK').classList.toggle('hidden', !known);
     cell.classList.toggle('hidden', !known);
@@ -1031,7 +1325,9 @@ function renderAudioCell(d) {
   }
   const n = tracks.length;
   const label = cur.length === n ? t('pv.all', { n }) : namesShort(cur.map(x => x.lang));
-  const note = ov
+  const note = isAudioOut() && cur.length > 1
+    ? t('pv.oneTrack', { name: lc(tName(cur[0].lang)) })
+    : ov
     ? t('pv.noteOverride', { names: lc(namesShort(rule.map(x => x.lang), 3)) })
     : t('pv.noteRule', { n });
   cell.innerHTML = `
@@ -1049,6 +1345,7 @@ function renderAudioCell(d) {
 function renderSubsCell(d) {
   const cell = $('pvSubs');
   const avail = d.subs || [];
+  if (isAudioOut()) { cell.innerHTML = `<span class="dim">${esc(t('pv.subsAudio'))}</span>`; return; }
   if (!avail.length) {
     cell.innerHTML = d.auto_subs
       ? `<span class="note">${esc(t('pv.subsAutoOnly'))}</span>`
@@ -1075,7 +1372,7 @@ function renderSubsCell(d) {
   btn.addEventListener('click', () => (openMenu && openMenu.anchor === btn) ? closeMenu() : showSubsPop(btn, d));
 }
 function subsChosen(d) {
-  if (S.settings.subs === 'off') return [];
+  if (S.settings.subs === 'off' || isAudioOut()) return [];
   const { cur } = currentAudio(d);
   return pickSubs(d.subs || [], S.settings.subs_lang, cur.map(t => t.lang), d.language);
 }
@@ -1241,6 +1538,31 @@ function showLangMenu(anchor) {
   });
 }
 
+// ---- окно «Расширение для браузера»: связь с программой и три шага в браузере
+async function renderExt() {
+  const st = await api.ext_status();
+  S.ext = st;
+  const box = $('extStat');
+  box.classList.toggle('ok', !!st.registered);
+  const seen = st.seen ? t('ext.seen', { t: new Intl.DateTimeFormat(LANG, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(st.seen * 1000)) }) : t('ext.notSeen');
+  $('extStatText').innerHTML = st.registered
+    ? `<b>${esc(t('ext.linked'))}</b> <span>· ${esc(seen)}</span>`
+    : `<b>${esc(t('ext.notLinked'))}</b> <span>· ${esc(t('ext.notLinkedHint'))}</span>`;
+  $('extConnect').classList.toggle('hidden', !!st.registered);
+  fitMiddle($('extPath'), st.folder);
+}
+function openExt() {
+  closeMenu();
+  $('extModal').classList.remove('hidden');
+  renderExt().then(() => $('extClose').focus());
+}
+function closeExt() { $('extModal').classList.add('hidden'); $('bApp').focus(); }
+function copyBtn(b, text) {
+  api.set_clipboard(text);
+  const old = b.textContent; b.textContent = t('log.copied');
+  setTimeout(() => b.textContent = old, 1200);
+}
+
 // ---- меню приложения (⋯): настройки самой программы, отдельно от параметров файла
 function showAppMenu(anchor) {
   closeMenu();
@@ -1255,6 +1577,7 @@ function showAppMenu(anchor) {
     <div class="msep"></div>
     <div class="mi${S.running ? ' dis' : ''}" data-act="lang" role="menuitem"><span class="ck"></span><span>${esc(t('menu.lang'))}</span><span class="hn">${esc(curLang)} ›</span></div>
     <div class="msep"></div>
+    <div class="mi" data-act="ext" role="menuitem"><span class="ck"></span><span>${esc(t('menu.ext'))}</span></div>
     <div class="mi" data-act="data" role="menuitem"><span class="ck"></span><span>${esc(t('menu.data'))}</span></div>
     <div class="mi" data-act="about" role="menuitem"><span class="ck"></span><span>${esc(t('menu.about'))}</span><span class="hn tab">${esc(v)}</span></div>`;
   document.body.appendChild(m);
@@ -1268,6 +1591,7 @@ function showAppMenu(anchor) {
     if (x.dataset.theme) { S.settings.theme = x.dataset.theme; onSettingsChanged(); }
     else if (x.dataset.act === 'lang') { if (S.running) return; closeMenu(); showLangMenu(anchor); return; }
     else if (x.dataset.act === 'data') api.open_data_dir();
+    else if (x.dataset.act === 'ext') { openExt(); return; }
     else if (x.dataset.act === 'about') { setLogOpen(true, true); appendLog(`To Picture ${v} · ${S.versions || ''}`, 'c'); }
     closeMenu(); anchor.focus();
   };
@@ -1308,17 +1632,17 @@ function rowHtml(r) {
   }
   return `<div class="row ${r.state}">
     <div class="row-top">
-      <span class="row-label"><span>${r.label}</span>${r.state === 'done' ? CHECK_ROW : ''}</span>
+      <span class="row-label"><span>${r.label}</span>${S.total > 1 && r.idx != null && r.state !== 'pending' ? `<span class="num tab">${esc(t('row.item', { i: r.idx + 1 }))}</span>` : ''}${r.state === 'done' ? CHECK_ROW : ''}</span>
       <div class="steps">${steps}</div>
       <span class="pct tab">${pctText}</span>
     </div>
     <div class="bar"><i style="width:${r.state === 'pending' ? 0 : pct}%"></i></div>
-    <div class="det tab"><span class="l ell" title="${esc(r.l)}">${esc(r.l || '')}</span><span class="r">${esc(r.r || '')}</span></div>
+    <div class="det tab"><span class="l ell" title="${esc(r.l)}">${esc(r.l || '')}</span><span class="r">${esc(S.paused && r.state === 'active' ? t('prog.paused') : r.r || '')}</span></div>
   </div>`;
 }
 function renderRows() {
   const rows = [S.dl];
-  if (S.settingsAtRun.codec !== 'copy') rows.push(S.tc);
+  if (S.settingsAtRun.codec !== 'copy' || S.tc.state !== 'pending') rows.push(S.tc);
   $('rows').innerHTML = rows.map(rowHtml).join('<div style="height:12px"></div>');
   $('rows').classList.toggle('hidden', !S.rowsShown);
 }
@@ -1327,28 +1651,50 @@ function updateTitle() {
   if (!S.running) return setTitle('');
   const act = S.tc.state === 'active' ? S.tc : S.dl.state === 'active' ? S.dl : null;
   if (!act) return setTitle('');
-  setTitle(`${Math.floor(act.pct || 0)}${NB}% · ${act.label}`);
+  setTitle(S.paused ? t('prog.paused') : `${Math.floor(act.pct || 0)}${NB}% · ${act.label}`);
 }
 function nextLabel() {
   const i = S.cur + 1;
   if (i >= S.total) return '';
   const u = S.runUrls[i];
   const c = S.preview.resolved?.get(u);
-  return t('q.next', { name: c && c.ok ? c.title : u });
+  return t('q.next', { name: c && c.ok ? c.title : S.runLabels[i] || u });
 }
 
 // ---------------------------------------------------------------- run
-function start() {
-  if (S.running) return;
-  const urls = S.listMode ? S.runUrls.slice() : validUrls();
+// плейлист, канал, альбом — их список видео нужен до запуска (обычные ссылки не ждём)
+const PLAYLIST_RE = /[?&]list=|\/playlist\b|\/@[^/?#]+\/?(videos|shorts|streams|featured)?\/?([?#]|$)|\/(channel|c|user)\/|\/sets\/|\/album[s]?\/|\/playlists?\//i;
+const looksLikePlaylist = (u) => PLAYLIST_RE.test(u) && !/[?&]v=|\/watch\b|\/shorts\/[\w-]{6,}/i.test(u);
+async function start() {
+  if (S.running || S.preparing) return;
+  const urls = S.listMode ? S.srcUrls.slice() : validUrls();
   if (!urls.length || S.missing.length) return;
   closeMenu();
-  S.running = true; S.cancelling = false;
-  S.runUrls = urls; S.lineState = urls.map(() => 'pending');
-  S.cur = -1; S.total = urls.length; S.settingsAtRun = { ...S.settings };
+  S.preparing = true; updateButtons();
+  const items = [];
+  for (const u of urls) {
+    const d = S.preview.done.get(u) || (looksLikePlaylist(u) ? await getPreview(u) : null);
+    if (d && d.ok && d.playlist) {
+      const sel = S.plSel.get(u), pad = Math.max(2, String(d.count).length);
+      d.entries.forEach((e, i) => {
+        if (!sel || sel.has(i)) items.push({ url: e.url, folder: d.title, prefix: String(i + 1).padStart(pad, '0') + ' ', title: e.title });
+      });
+    } else items.push({ url: u });
+  }
+  S.preparing = false;
+  if (!items.length) { updateButtons(); return; }
+  S.running = true; S.cancelling = false; S.paused = false;
+  S.srcUrls = urls; S.runItems = items;
+  S.runUrls = items.map(x => x.url);
+  S.runLabels = items.map(x => x.title ? x.prefix + x.title : '');
+  S.lineState = items.map(() => 'pending'); S.plans = {};
+  S.cur = -1; S.total = items.length; S.settingsAtRun = { ...S.settings };
   S.lastFile = null; S.runStart = Date.now();
   S.preview.resolved = new Map();
-  urls.forEach(u => getPreview(u).then(d => S.preview.resolved.set(u, d)));
+  // для обычных ссылок превью уже есть или грузится; видео плейлиста превью получают по ходу загрузки
+  items.forEach(it => { if (!it.folder) getPreview(it.url).then(d => S.preview.resolved.set(it.url, d)); });
+  S.dl = { label: t('prog.download'), state: 'pending', l: '', r: '' };
+  S.tc = { label: t('prog.transcode'), state: 'pending', l: '', r: '' };
   setListMode(true);
   lockSettings(true);
   $('prog').classList.remove('hidden');
@@ -1357,8 +1703,18 @@ function start() {
   S.rowsShown = false;
   updateButtons();
   const overrides = {};
-  for (const u of urls) if (S.audioOverride.get(u)) overrides[u] = { audio: S.audioOverride.get(u) };
-  api.start(urls, S.settings, overrides).then(ok => { if (!ok) { S.running = false; updateButtons(); } });
+  for (const u of urls) {
+    const o = {};
+    if (S.audioOverride.get(u)) o.audio = S.audioOverride.get(u);
+    if (S.trim.get(u)) o.trim = S.trim.get(u);
+    if (Object.keys(o).length) overrides[u] = o;
+  }
+  api.start(items.map(({ url, folder, prefix }) => ({ url, folder, prefix })), S.settings, overrides)
+    .then(ok => { if (!ok) { S.running = false; updateButtons(); } });
+}
+function togglePause() {
+  if (!S.running || S.cancelling) return;
+  api.pause(!S.paused);
 }
 function cancel() {
   if (!S.running || S.cancelling) return;
@@ -1375,27 +1731,67 @@ const app = window.app = {
 };
 const handlers = {
   log(ev) { appendLog(ev.line, ev.level); },
+  ext_link(ev) {
+    const have = (S.listMode ? S.srcUrls : validUrls()).includes(ev.url) || validUrls().includes(ev.url);
+    if (!have) {
+      if (S.running || S.preparing) {
+        // идёт загрузка — ссылка ждёт в списке и скачается следующим запуском
+        const cur = ta.value.replace(/\s+$/, '');
+        ta.value = (cur ? cur + '\n' : '') + ev.url + '\n';
+        flashHint(t('ext.queued'));
+      } else appendText(ev.url);
+    } else if (!S.running) { S.preview.shownUrl = null; showPreviewFor(ev.url); }
+    appendLog(t('ext.got', { url: ev.url }), 'n');
+  },
   ytdlp(ev) { appendLog(ev.line, ev.level); },
   item(ev) {
     S.cur = ev.index;
     S.lineState[ev.index] = 'active';
     renderGutter(); renderUrlList();
-    S.dl = { label: t('prog.download'), state: 'active', pct: 0, step: 'video', l: t('prog.connecting'), r: '' };
-    S.tc = { label: t('prog.transcode'), state: 'pending', l: t('prog.waiting', { desc: codecDesc() }), r: '' };
-    // если по превью уже понятно, что YouTube отдаёт H.264, — честно пишем «перепаковка»
-    const pd = S.preview.resolved?.get(S.runUrls[ev.index]);
-    if (pd && pd.ok && selectVideo(pd).copy) S.tc = { label: t('prog.remux'), copy: true, state: 'pending', l: t('prog.waiting', { desc: t('desc.noReencode') }), r: '' };
-    S.rowsShown = false; S.gotProgress = false;
+    S.dl = { label: t('prog.download'), idx: ev.index, state: 'active', pct: 0, step: 'video', l: t('prog.connecting'), r: '' };
+    // строка перекодирования показывает следующее видео, только если сейчас она свободна
+    if (S.tc.state !== 'active') {
+      S.tc = { label: t('prog.transcode'), idx: ev.index, state: 'pending', l: t('prog.waiting', { desc: codecDesc() }), r: '' };
+      // если по превью уже понятно, что сайт отдаёт H.264, — честно пишем «перепаковка»
+      const pd = S.preview.resolved?.get(S.runUrls[ev.index]);
+      if (pd && pd.ok && !pd.playlist && selectVideo(pd).copy) S.tc = { label: t('prog.remux'), idx: ev.index, copy: true, state: 'pending', l: t('prog.waiting', { desc: t('desc.noReencode') }), r: '' };
+    }
+    if (S.tc.state !== 'active') S.rowsShown = false;
     renderRows();
     $('qLabel').textContent = t('q.videoOf', { i: ev.index + 1, n: ev.total });
     $('qNext').textContent = nextLabel();
     $('qNext').title = $('qNext').textContent;
-    showPreviewFor(S.runUrls[ev.index]);
+    const it = S.runItems[ev.index] || {};
+    if (it.folder && !S.preview.done.get(it.url)) {
+      // видео из плейлиста: превью придёт событием meta, отдельный запрос к сайту не нужен
+      S.preview.shownUrl = it.url; S.preview.shownData = null; ++S.preview.gen;
+      renderPreviewState('loading', { url: it.url });
+    } else showPreviewFor(S.runUrls[ev.index]);
     updateTitle();
+  },
+  meta(ev) {
+    const url = S.runUrls[ev.index], d = ev.data;
+    if (!url || !d) return;
+    d.url = url;
+    S.preview.done.set(url, d); S.preview.cache.set(url, Promise.resolve(d));
+    S.preview.resolved?.set(url, d);
+    if (S.dl.idx === ev.index) { S.preview.shownUrl = url; S.preview.shownData = d; renderPreview(d); }
+  },
+  paused(ev) {
+    S.paused = !!ev.on;
+    renderRows(); updateTitle(); updateButtons();
+  },
+  tc_start(ev) {
+    const pl = S.plans[ev.index] || {};
+    const copy = !!pl.copy || S.settingsAtRun.codec === 'copy';
+    S.rowsShown = true;
+    S.tc = { label: copy ? t('prog.remux') : t('prog.transcode'), idx: ev.index, copy, state: 'active', pct: 0, l: t('prog.ffmpegStart'), r: '' };
+    renderRows(); updateTitle();
   },
   progress(ev) {
     S.rowsShown = true;
     if (ev.stage === 'download') {
+      if (ev.index != null && ev.index !== S.dl.idx) return;
       const r = S.dl;
       r.state = 'active';
       r.step = ev.step;
@@ -1411,6 +1807,7 @@ const handlers = {
         r.r = ev.eta != null ? t('prog.left', { t: fmtTime(ev.eta) }) : '';
       }
     } else {
+      if (ev.index != null && ev.index !== S.tc.idx) return;
       const r = S.tc;
       r.state = 'active';
       r.pct = ev.pct;
@@ -1426,19 +1823,21 @@ const handlers = {
   stage_done(ev) {
     S.rowsShown = true;
     if (ev.stage === 'download') {
-      S.dl = { label: t('prog.download'), state: 'done', step: 'merge', audio_n: S.dl.audio_n, has_subs: S.dl.has_subs, audio_only: S.dl.audio_only, l: fmtSize(ev.size) + (ev.merged ? t('prog.merged') : ''), r: fmtTime(ev.elapsed) };
-      if (S.settingsAtRun.codec !== 'copy') S.tc = { label: S.tc.copy ? t('prog.remux') : t('prog.transcode'), copy: S.tc.copy, state: 'active', pct: 0, l: t('prog.ffmpegStart'), r: '' };
+      S.dl = { label: t('prog.download'), idx: ev.index, state: 'done', step: 'merge', audio_n: S.dl.audio_n, has_subs: S.dl.has_subs, audio_only: S.dl.audio_only, l: fmtSize(ev.size) + (ev.merged ? t('prog.merged') : ''), r: fmtTime(ev.elapsed) };
     } else {
       const copy = S.tc.copy;
-      S.tc = { label: copy ? t('prog.remux') : t('prog.transcode'), state: 'done', copy,
+      S.tc = { label: copy ? t('prog.remux') : t('prog.transcode'), idx: ev.index, state: 'done', copy,
                l: fmtSize(ev.size) + ' · ' + (copy ? t('prog.remuxDone') : codecDesc()), r: fmtTime(ev.elapsed) };
     }
     renderRows(); updateTitle();
   },
   tc_mode(ev) {
-    if (ev.copy) { S.tc = { ...S.tc, label: t('prog.remux'), copy: true, l: t('prog.remuxNote') }; renderRows(); }
+    if (ev.index != null && ev.index !== S.tc.idx) return;
+    if (ev.copy) { S.tc = { ...S.tc, label: t('prog.remux'), copy: true, l: S.plans[ev.index]?.audio_only ? t('prog.remuxAudio') : t('prog.remuxNote') }; renderRows(); }
   },
   plan(ev) {
+    S.plans[ev.index ?? S.dl.idx] = { copy: !!ev.copy, audio_only: !!ev.audio_only };
+    if (ev.index != null && ev.index !== S.dl.idx) return;
     S.dl.has_subs = ev.subs; S.dl.audio_n = ev.audio_n; S.dl.audio_only = !!ev.audio_only; renderRows();
   },
   item_done(ev) {
@@ -1449,7 +1848,7 @@ const handlers = {
   item_error(ev) {
     S.lineState[ev.index] = 'error';
     renderGutter(); renderUrlList();
-    const failing = S.tc.state === 'active' ? S.tc : S.dl;
+    const failing = ev.stage === 'transcode' ? S.tc : ev.stage === 'download' ? S.dl : S.tc.state === 'active' ? S.tc : S.dl;
     failing.state = 'error'; failing.l = ev.message; failing.r = '';
     renderRows();
     $('errT').textContent = t('err.interrupted', { stage: failing.label, i: ev.index + 1, n: ev.total });
@@ -1460,12 +1859,13 @@ const handlers = {
   item_cancelled(ev) {
     S.lineState[ev.index] = 'pending';
     renderGutter(); renderUrlList();
-    const r = S.tc.state === 'active' ? S.tc : S.dl;
+    const r = ev.stage === 'transcode' ? S.tc : S.dl;
+    if (r.idx !== ev.index || r.state === 'done') return;
     r.state = 'error'; r.l = t('prog.cancelled'); r.r = '';
     renderRows();
   },
   finished(ev) {
-    S.running = false; S.cancelling = false;
+    S.running = false; S.cancelling = false; S.paused = false;
     lockSettings(false);
     if (ev.cancelled) {
       $('qLabel').textContent = t('q.cancelled');
@@ -1494,7 +1894,7 @@ const handlers = {
     setTitle('');
     updateButtons();
     S.preview.shownUrl = null;
-    showPreviewFor(S.runUrls[S.runUrls.length - 1]);
+    showPreviewFor(S.srcUrls[S.srcUrls.length - 1]);
   },
 };
 
@@ -1524,17 +1924,32 @@ function setLogOpen(open, reveal = false) {
 // Если содержимое не влезает (много строк прогресса, ошибка, маленькое окно), область между ссылками
 // и кнопками прокручивается — раньше в этом случае журнал захлопывался и его нельзя было открыть.
 
+// подсказка внизу на несколько секунд
+let hintTimer = 0;
+function flashHint(text) {
+  clearTimeout(hintTimer);
+  S.hintFlash = text; updateButtons();
+  hintTimer = setTimeout(() => { S.hintFlash = ''; updateButtons(); }, 4000);
+}
+
 // ---------------------------------------------------------------- buttons / hint
 function updateButtons() {
   const main = $('bMain');
-  if (S.running) {
+  const pause = $('bPause');
+  pause.classList.toggle('hidden', !S.running);
+  pause.textContent = t(S.paused ? 'btn.resume' : 'btn.pause');
+  pause.disabled = S.cancelling;
+  if (S.preparing) {
+    main.textContent = t('btn.preparing');
+    main.disabled = true;
+  } else if (S.running) {
     main.textContent = t('btn.cancel');
     main.classList.add('cancel');
     main.disabled = S.cancelling;
   } else {
     main.textContent = t('btn.download');
     main.classList.remove('cancel');
-    main.disabled = !(S.listMode ? S.runUrls.length : validUrls().length) || S.missing.length > 0;
+    main.disabled = !(S.listMode ? S.srcUrls.length : validUrls().length) || S.missing.length > 0;
   }
   $('bFolder').disabled = !S.lastFile;
   $('bClear').disabled = S.running || (!S.listMode && !ta.value.trim());
@@ -1542,6 +1957,7 @@ function updateButtons() {
   const hint = $('hint');
   hint.classList.toggle('err', S.missing.length > 0);
   if (S.missing.length) hint.textContent = t('hint.missing', { list: S.missing.join(', ') });
+  else if (S.hintFlash) hint.textContent = S.hintFlash;
   else if (S.running) hint.textContent = '';
   else if (!ta.value.trim() && !S.listMode) hint.textContent = t('hint.keysEmpty');
   else hint.textContent = t('hint.keys');
@@ -1593,6 +2009,23 @@ function wire() {
     if (d) { S.settings.out_dir = d; onSettingsChanged(); }
   });
   $('outDir').addEventListener('dblclick', () => $('bBrowse').click());
+  $('bCookies').addEventListener('click', async () => {
+    const f = await api.browse_file(S.settings.cookies_file);
+    if (f) { S.settings.cookies_file = f; onSettingsChanged(); onNetChanged(); }
+  });
+  $('cookiesFile').addEventListener('dblclick', () => $('bCookies').click());
+  const px = $('proxy');
+  px.addEventListener('input', () => { S.settings.proxy = px.value.trim(); onSettingsChanged(); });
+  px.addEventListener('change', onNetChanged);
+  px.addEventListener('keydown', (e) => { if (e.key === 'Enter') px.blur(); });
+  $('bPause').addEventListener('click', togglePause);
+  $('extClose').addEventListener('click', closeExt);
+  $('extModal').addEventListener('mousedown', (e) => { if (e.target === $('extModal')) closeExt(); });
+  $('extModal').addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeExt(); } });
+  $('extConnect').addEventListener('click', async () => { await api.ext_register(); renderExt(); });
+  $('extOpen').addEventListener('click', () => api.ext_open_folder());
+  $('extCopyPath').addEventListener('click', (e) => copyBtn(e.currentTarget, S.ext ? S.ext.folder : ''));
+  document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', () => copyBtn(b, b.dataset.copy)));
 
   $('bMain').addEventListener('click', () => S.running ? cancel() : start());
   $('bFolder').addEventListener('click', () => api.show_in_folder(S.lastFile));
@@ -1602,6 +2035,7 @@ function wire() {
     if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); start(); return; }
     const a = document.activeElement;
     const editable = a && (a.tagName === 'TEXTAREA' || a.tagName === 'INPUT' && a.type !== 'range');
+    if (e.key === 'Pause' || (e.ctrlKey && e.key === ' ')) { e.preventDefault(); togglePause(); return; }
     if (e.ctrlKey && (e.key === 'v' || e.key === 'м') && !editable && !S.running) {
       e.preventDefault();
       api.get_clipboard().then(appendText);
@@ -1612,7 +2046,7 @@ function wire() {
     if (e.key === 'F5' || (e.ctrlKey && (e.key === 'r' || e.key === 'p' || e.key === 'f'))) e.preventDefault();
   });
   document.addEventListener('contextmenu', (e) => {
-    if (!(e.target === ta || $('logBox').contains(e.target))) e.preventDefault();
+    if (!(e.target === ta || e.target.tagName === 'INPUT' || $('logBox').contains(e.target))) e.preventDefault();
   });
 
   let rt = 0;
@@ -1672,6 +2106,8 @@ async function boot() {
   renderPreviewState('empty');
   updateButtons();
   ta.focus();
+  // ссылки, присланные из браузера до открытия окна; первый запуск после установки — как подключить расширение
+  api.links_ready().then(r => { if (r && r.show_help) openExt(); }).catch(() => {});
 }
 window.addEventListener('pywebviewready', boot);
 </script>

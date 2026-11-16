@@ -8,7 +8,7 @@
 
 #define AppName "To Picture"
 #ifndef AppVersion
-  #define AppVersion "1.7.0"
+  #define AppVersion "1.0.0"
 #endif
 #define AppExe "To Picture.exe"
 
@@ -120,21 +120,40 @@ fr.AppRunningAbort=Fermez To Picture et relancez l’installation.
 tr.AppRunning=To Picture çalışıyor. Kapatıp kuruluma devam edilsin mi?
 tr.AppRunningAbort=To Picture’ı kapatıp kurulumu yeniden başlatın.
 
+en.BrowserExt=Browser extension (Chrome, Edge and others)
+ru.BrowserExt=Расширение для браузера (Chrome, Edge и другие)
+zh.BrowserExt=浏览器扩展(Chrome、Edge 等)
+ja.BrowserExt=ブラウザー拡張機能(Chrome、Edge など)
+ko.BrowserExt=브라우저 확장 프로그램(Chrome, Edge 등)
+es.BrowserExt=Extensión del navegador (Chrome, Edge y otros)
+pt.BrowserExt=Extensão do navegador (Chrome, Edge e outros)
+de.BrowserExt=Browser-Erweiterung (Chrome, Edge und andere)
+fr.BrowserExt=Extension de navigateur (Chrome, Edge et autres)
+tr.BrowserExt=Tarayıcı uzantısı (Chrome, Edge ve diğerleri)
+
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+; связь с расширением (native messaging) — записи в HKCU, без прав администратора
+Name: "browserext"; Description: "{cm:BrowserExt}"
 
 [Files]
 Source: "payload\{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "payload\bin\*"; DestDir: "{app}\bin"; Excludes: "yt-dlp.exe"; Flags: ignoreversion recursesubdirs
 ; yt-dlp обновляет себя сам — при переустановке не откатываем его на версию из установщика
 Source: "payload\bin\yt-dlp.exe"; DestDir: "{app}\bin"; Flags: onlyifdoesntexist
+; папка расширения ставится всегда: подключить его можно и позже (меню ⋯ → Расширение для браузера)
+Source: "..\extension\*"; DestDir: "{app}\extension"; Flags: ignoreversion recursesubdirs
 
 [Icons]
 Name: "{autoprograms}\{#AppName}"; Filename: "{app}\{#AppExe}"
 Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExe}"; Tasks: desktopicon
 
 [Run]
+Filename: "{app}\{#AppExe}"; Parameters: "--register-extension"; Tasks: browserext; Flags: runhidden waituntilterminated
 Filename: "{app}\{#AppExe}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "{app}\{#AppExe}"; Parameters: "--unregister-extension"; Flags: runhidden waituntilterminated; RunOnceId: "UnregisterExtension"
 
 [UninstallDelete]
 ; yt-dlp обновляет себя сам, поэтому в bin могут появиться файлы, которых не было при установке

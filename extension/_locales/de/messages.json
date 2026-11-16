@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "Schickt ein Video von der Seite an To Picture — die App lädt es als Datei, die überall läuft."
+ },
+ "actionTitle": {
+  "message": "An To Picture senden"
+ },
+ "menuLink": {
+  "message": "Link in To Picture herunterladen"
+ },
+ "menuMedia": {
+  "message": "Dieses Video in To Picture herunterladen"
+ },
+ "menuPage": {
+  "message": "Video der Seite in To Picture herunterladen"
+ },
+ "notVideoPage": {
+  "message": "Auf dieser Seite gibt es keinen Videolink"
+ },
+ "errNoApp": {
+  "message": "To Picture antwortet nicht"
+ },
+ "sent": {
+  "message": "An To Picture gesendet"
+ },
+ "sentLaunched": {
+  "message": "To Picture wird geöffnet…"
+ },
+ "helpTitle": {
+  "message": "To Picture ist nicht verbunden"
+ },
+ "helpLead": {
+  "message": "Die Erweiterung schickt Links an die App To Picture, aber die App hat nicht geantwortet."
+ },
+ "helpStep1": {
+  "message": "Installieren Sie To Picture 1.0 oder neuer:"
+ },
+ "helpDownload": {
+  "message": "herunterladen"
+ },
+ "helpStep2": {
+  "message": "Lassen Sie im Installer „Browser-Erweiterung“ angehakt."
+ },
+ "helpStep3": {
+  "message": "Portable Version: in To Picture ⋯ → Browser-Erweiterung → Verbinden öffnen."
+ }
+}

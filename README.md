@@ -43,11 +43,21 @@ yt-dlp and ffmpeg are included — nothing else to install. Windows 10 or 11, 64
 
 ## How to use
 
-1. Copy a video link from any supported site and paste it into **Links** (Ctrl+V). You can add several, one per line.
-2. Check the preview: quality, what it will be converted to, which audio tracks and subtitles go into the file. If a video has several dubs, you can tick the ones you want right in the preview — for that link only.
-3. Click **Download** (Ctrl+Enter). **Show in folder** opens the finished file.
+1. Copy a video link from any supported site and paste it into **Links** (Ctrl+V). You can add several, one per line — or a playlist or channel link: the preview lists its videos, untick the ones you don't need.
+2. Check the preview: quality, what it will be converted to, which audio tracks and subtitles go into the file. If a video has several dubs, you can tick the ones you want right in the preview — for that link only. **Clip** saves just a part of the video, cut exactly on the frame.
+3. Click **Download** (Ctrl+Enter). **Pause** freezes downloading and encoding and resumes from the same spot. **Show in folder** opens the finished file.
 
-Everything else is in **Settings**: folder, codec, resolution, quality, encoder, audio tracks, subtitles. Theme and language are in the **⋯** menu.
+Everything else is in **Settings**: folder, codec (or MP3 / FLAC / M4A for audio only), resolution, quality, encoder, audio tracks, subtitles, file name pattern, cutting out sponsor segments (SponsorBlock), sign-in to sites, proxy and speed limit. While one video is encoding, the next one is already downloading. Theme and language are in the **⋯** menu.
+
+## Browser extension
+
+A **To Picture** button and a right-click item (“Download in To Picture”) in Chrome, Edge, Brave, Vivaldi, Opera and Yandex Browser send the video straight to the app — it opens if it was closed. If a site needs sign-in, the extension passes your sign-in along with the link, so members-only and age-restricted videos download the same way you see them.
+
+1. In the installer, keep **Browser extension** checked (portable version: **⋯ → Browser extension → Connect**).
+2. Open `chrome://extensions` (or `edge://extensions`) and turn on **Developer mode**.
+3. Click **Load unpacked** and choose the `extension` folder — the app shows its path and copies it for you (**⋯ → Browser extension**).
+
+Browsers don't let apps install extensions silently, so steps 2–3 are done once by hand. The extension updates together with the app.
 
 ## FAQ
 
@@ -61,7 +71,10 @@ If the site already serves H.264 at the chosen resolution (YouTube usually does 
 No. With one, encoding is faster and uses almost no memory; without it, the processor does the work.
 
 **Which sites work?**
-Everything [yt-dlp supports](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) — over a thousand sites. Checked: YouTube, VK, TikTok, Twitch, Instagram, Dailymotion, Rutube, Coub, Weverse; SoundCloud and other audio-only links are saved as `.m4a`. Sites that show the video only to signed-in users (Vimeo, Reddit, some X and Instagram posts) aren't supported yet — the app says so.
+Everything [yt-dlp supports](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) — over a thousand sites. Checked: YouTube, VK, TikTok, Twitch, Instagram, Dailymotion, Rutube, Coub, Weverse; SoundCloud and other audio-only links are saved as `.m4a`. For sites that show the video only to signed-in users (Vimeo, Reddit, members-only and age-restricted videos), see the next question.
+
+**How do I download a video that needs sign-in?**
+Easiest: send the link with the [browser extension](#browser-extension) — it passes your sign-in from the browser, and the app uses it only if the site asks for it. Or turn on **Settings → Sign in to sites**. *Firefox*: sign in to the site in Firefox, and the app uses its cookies. *cookies.txt file*: for Chrome, Edge and other Chromium browsers — Windows encrypts their cookies so no app can read them directly, so export a `cookies.txt` with an extension such as “Get cookies.txt LOCALLY” and pick the file. The app works with a copy and never changes it.
 
 **Are auto-generated subtitles downloaded?**
 No, only official ones. They're embedded as tracks and turned on in the player.

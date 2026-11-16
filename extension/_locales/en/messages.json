@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "Send a video from the page to To Picture — the app downloads it as a file that plays anywhere."
+ },
+ "actionTitle": {
+  "message": "Send to To Picture"
+ },
+ "menuLink": {
+  "message": "Download the link in To Picture"
+ },
+ "menuMedia": {
+  "message": "Download this video in To Picture"
+ },
+ "menuPage": {
+  "message": "Download the page video in To Picture"
+ },
+ "notVideoPage": {
+  "message": "This page has no video link"
+ },
+ "errNoApp": {
+  "message": "To Picture didn’t answer"
+ },
+ "sent": {
+  "message": "Sent to To Picture"
+ },
+ "sentLaunched": {
+  "message": "Opening To Picture…"
+ },
+ "helpTitle": {
+  "message": "To Picture isn’t connected"
+ },
+ "helpLead": {
+  "message": "The extension sends links to the To Picture app, but the app didn’t answer."
+ },
+ "helpStep1": {
+  "message": "Install To Picture 1.0 or newer:"
+ },
+ "helpDownload": {
+  "message": "download"
+ },
+ "helpStep2": {
+  "message": "In the installer, keep “Browser extension” checked."
+ },
+ "helpStep3": {
+  "message": "Portable version: in To Picture open ⋯ → Browser extension → Connect."
+ }
+}

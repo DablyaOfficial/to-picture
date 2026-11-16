@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "Sayfadaki videoyu To Picture’a gönderir — uygulama onu her yerde açılan bir dosya olarak indirir."
+ },
+ "actionTitle": {
+  "message": "To Picture’a gönder"
+ },
+ "menuLink": {
+  "message": "Bağlantıyı To Picture’da indir"
+ },
+ "menuMedia": {
+  "message": "Bu videoyu To Picture’da indir"
+ },
+ "menuPage": {
+  "message": "Sayfadaki videoyu To Picture’da indir"
+ },
+ "notVideoPage": {
+  "message": "Bu sayfada video bağlantısı yok"
+ },
+ "errNoApp": {
+  "message": "To Picture yanıt vermedi"
+ },
+ "sent": {
+  "message": "To Picture’a gönderildi"
+ },
+ "sentLaunched": {
+  "message": "To Picture açılıyor…"
+ },
+ "helpTitle": {
+  "message": "To Picture bağlı değil"
+ },
+ "helpLead": {
+  "message": "Uzantı bağlantıları To Picture uygulamasına gönderir, ancak uygulama yanıt vermedi."
+ },
+ "helpStep1": {
+  "message": "To Picture 1.0 veya daha yenisini kurun:"
+ },
+ "helpDownload": {
+  "message": "indir"
+ },
+ "helpStep2": {
+  "message": "Kurulumda “Tarayıcı uzantısı” işaretli kalsın."
+ },
+ "helpStep3": {
+  "message": "Taşınabilir sürüm: To Picture’da ⋯ → Tarayıcı uzantısı → Bağla."
+ }
+}

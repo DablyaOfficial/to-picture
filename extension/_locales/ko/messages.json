@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "페이지의 영상을 To Picture로 보냅니다. 앱이 어디서나 재생되는 파일로 저장합니다."
+ },
+ "actionTitle": {
+  "message": "To Picture로 보내기"
+ },
+ "menuLink": {
+  "message": "링크를 To Picture로 다운로드"
+ },
+ "menuMedia": {
+  "message": "이 영상을 To Picture로 다운로드"
+ },
+ "menuPage": {
+  "message": "페이지 영상을 To Picture로 다운로드"
+ },
+ "notVideoPage": {
+  "message": "이 페이지에는 영상 링크가 없습니다"
+ },
+ "errNoApp": {
+  "message": "To Picture가 응답하지 않습니다"
+ },
+ "sent": {
+  "message": "To Picture로 보냈습니다"
+ },
+ "sentLaunched": {
+  "message": "To Picture를 여는 중…"
+ },
+ "helpTitle": {
+  "message": "To Picture가 연결되지 않았습니다"
+ },
+ "helpLead": {
+  "message": "확장 프로그램은 To Picture 앱으로 링크를 보내지만 앱이 응답하지 않았습니다."
+ },
+ "helpStep1": {
+  "message": "To Picture 1.0 이상을 설치하세요:"
+ },
+ "helpDownload": {
+  "message": "다운로드"
+ },
+ "helpStep2": {
+  "message": "설치 프로그램에서 ‘브라우저 확장 프로그램’을 선택한 상태로 두세요."
+ },
+ "helpStep3": {
+  "message": "포터블 버전: To Picture에서 ⋯ → 브라우저 확장 프로그램 → 연결을 여세요."
+ }
+}

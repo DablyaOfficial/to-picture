@@ -1,0 +1,50 @@
+{
+ "extName": {
+  "message": "To Picture"
+ },
+ "extDesc": {
+  "message": "ページの動画を To Picture に送ります。アプリがどこでも再生できるファイルとして保存します。"
+ },
+ "actionTitle": {
+  "message": "To Picture に送る"
+ },
+ "menuLink": {
+  "message": "リンクを To Picture でダウンロード"
+ },
+ "menuMedia": {
+  "message": "この動画を To Picture でダウンロード"
+ },
+ "menuPage": {
+  "message": "ページの動画を To Picture でダウンロード"
+ },
+ "notVideoPage": {
+  "message": "このページには動画のリンクがありません"
+ },
+ "errNoApp": {
+  "message": "To Picture が応答しません"
+ },
+ "sent": {
+  "message": "To Picture に送りました"
+ },
+ "sentLaunched": {
+  "message": "To Picture を起動中…"
+ },
+ "helpTitle": {
+  "message": "To Picture に接続されていません"
+ },
+ "helpLead": {
+  "message": "拡張機能は To Picture アプリにリンクを送りますが、アプリが応答しませんでした。"
+ },
+ "helpStep1": {
+  "message": "To Picture 1.0 以降をインストールしてください:"
+ },
+ "helpDownload": {
+  "message": "ダウンロード"
+ },
+ "helpStep2": {
+  "message": "インストーラーで「ブラウザー拡張機能」のチェックを入れたままにします。"
+ },
+ "helpStep3": {
+  "message": "ポータブル版: To Picture で ⋯ → ブラウザー拡張機能 → 接続 を開きます。"
+ }
+}
