@@ -4703,7 +4703,7 @@ checksum = "009dbb7700f11c55ef83aebbe4c0e9cf1f1ac0844bd8d6f00dc38f302026e13a"
 
 [[package]]
 name = "topicture"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "arboard",
  "image",
@@ -4722,7 +4722,7 @@ dependencies = [
 
 [[package]]
 name = "topicture-bridge"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "rand",
  "serde",
@@ -4734,7 +4734,7 @@ dependencies = [
 
 [[package]]
 name = "topicture-core"
-version = "1.0.0"
+version = "1.0.1"
 dependencies = [
  "regex",
  "serde",
