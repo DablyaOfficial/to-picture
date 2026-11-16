@@ -22,7 +22,7 @@ export struct SubItem { name: string, on: bool, tip: string }
 // карточка превью; state: 0 — пусто, 1 — загрузка, 2 — ошибка, 3 — видео, 4 — плейлист
 export struct Pv {
     state: int, thumb: image, has-thumb: bool, msg: string, chip: string,
-    title: string, byline: string, err: string, url: string,
+    title: string, byline: string, err: string, url: string, ext-btn: string,
     src: string, out: string, out-tip: string, trim: string, trim-on: bool,
     akind: int, atext: string, alabel: string, aov: bool, anote: string, atip: string,
     skind: int, sa: string, sb: string, sbtn: string, stip: string,
@@ -1155,6 +1155,15 @@ export component AppWindow inherits Window {
                                     overflow: elide;
                                     min-width: 0px;
                                     max-height: 60px;
+                                }
+                                // нужен вход или YouTube требует проверку — кнопка к расширению для браузера
+                                if S.pv.ext-btn != "": HorizontalLayout {
+                                    padding-top: 8px;
+                                    alignment: start;
+                                    Btn {
+                                        text: S.pv.ext-btn;
+                                        clicked => { S.app-act("ext"); }
+                                    }
                                 }
                                 Rectangle { vertical-stretch: 1; }
                                 Text {

@@ -18,6 +18,7 @@ pub mod procs;    // запуск без окна, дерево процессо
 pub mod updater;  // обновление своего yt-dlp
 pub mod preview;  // yt-dlp -J -> карточка видео / плейлиста
 pub mod job;      // очередь: скачивание + перекодирование
+pub mod logins;   // вход от расширения между запусками (logins.dat, DPAPI)
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -178,13 +179,27 @@ pub struct InitInfo {
 #[derive(Debug, Clone)]
 pub struct GpuInfo { pub vendor: String, pub short: String }
 
-/// Cookies, присланные расширением вместе со ссылкой. Только в памяти; ключ — site_key (домен без www).
+/// Cookies, присланные расширением вместе со ссылкой; ключ — site_key (домен без www).
+/// С файлом (Engine) переживают перезапуск: logins.dat в папке данных, зашифрован Windows.
 #[derive(Default)]
-pub struct BrowserCookies { inner: std::sync::Mutex<HashMap<String, String>> }
+pub struct BrowserCookies {
+    inner: std::sync::Mutex<HashMap<String, String>>,
+    file: Option<std::path::PathBuf>,
+}
 
 impl BrowserCookies {
+    /// Хранилище с файлом: загрузить сохранённый вход (истёкший отбрасывается).
+    pub fn with_file(path: std::path::PathBuf) -> Self {
+        BrowserCookies { inner: std::sync::Mutex::new(logins::load(&path)), file: Some(path) }
+    }
+
     /// Сохранить cookies.txt (формат Netscape) для сайта.
-    pub fn put(&self, site: String, netscape: String) { self.inner.lock().unwrap().insert(site, netscape); }
+    pub fn put(&self, site: String, netscape: String) {
+        let mut m = self.inner.lock().unwrap();
+        if m.get(&site) == Some(&netscape) { return; }
+        m.insert(site, netscape);
+        if let Some(f) = &self.file { logins::save(f, &m); }
+    }
     /// Найти cookies для ссылки: тот же сайт, его поддомен или родительский домен.
     pub fn for_url(&self, url: &str) -> Option<String> {
         let key = site_key(url);
@@ -262,7 +277,7 @@ pub struct Engine {
 
 impl Engine {
     pub fn new(sink: EventSink) -> Arc<Engine> {
-        let cookies: Arc<BrowserCookies> = Arc::default();
+        let cookies = Arc::new(BrowserCookies::with_file(paths::data_dir().join(logins::FILE)));
         let sh = Arc::new(Shared {
             sink: sink.clone(),
             cookies: cookies.clone(),

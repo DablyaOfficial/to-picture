@@ -230,7 +230,7 @@
  "links.placeholder": "Pega un enlace — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
  "pv.audioOnly": "solo audio",
  "py.audioOnly": "Aquí no hay vídeo: se guarda el audio",
- "py.err.bot": "YouTube tomó la solicitud por un robot; suele pasar con una VPN. Envía el enlace con la extensión desde un navegador donde hayas iniciado sesión en YouTube o activa «Iniciar sesión en sitios».",
+ "py.err.bot": "YouTube tomó la solicitud por un robot; suele pasar con una VPN. Instala la extensión del navegador y envía el enlace desde un navegador donde hayas iniciado sesión en YouTube. La app recordará la sesión.",
  "py.err.login": "Este sitio muestra el vídeo solo tras iniciar sesión. Envía el enlace con la extensión del navegador o activa «Iniciar sesión en sitios».",
  "py.err.noVideo": "Esta publicación no tiene vídeo.",
  "py.err.noFormat": "El sitio no ofreció un formato descargable para este vídeo.",

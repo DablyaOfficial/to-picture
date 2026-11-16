@@ -230,7 +230,7 @@
  "links.placeholder": "Cole um link — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
  "pv.audioOnly": "só áudio",
  "py.audioOnly": "Não há vídeo aqui — salvando o áudio",
- "py.err.bot": "O YouTube achou que a solicitação é de um robô — isso é comum com VPN. Envie o link pela extensão de um navegador com login no YouTube ou ative “Login nos sites”.",
+ "py.err.bot": "O YouTube achou que a solicitação é de um robô — isso é comum com VPN. Instale a extensão do navegador e envie o link de um navegador com login no YouTube. O app vai lembrar o login.",
  "py.err.login": "Este site só mostra o vídeo após o login. Envie o link pela extensão do navegador ou ative “Login nos sites”.",
  "py.err.noVideo": "Esta publicação não tem vídeo.",
  "py.err.noFormat": "O site não ofereceu um formato baixável para este vídeo.",

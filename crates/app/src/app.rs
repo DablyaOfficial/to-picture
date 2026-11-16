@@ -873,7 +873,10 @@ impl App {
         self.ui().global::<S>().set_pv(pv);
     }
     fn render_preview_state_error(&self, title: &str, err: &str, url: &str) {
-        let pv = Pv { state: 2, title: ss(title), err: ss(err), url: ss(url), ..self.pv_base() };
+        // вход нужен или YouTube принял за робота: помогает вход из браузера через расширение
+        let needs_login = ["py.err.bot", "py.err.login", "py.err.age", "py.err.members"].iter().any(|k| self.tr(k) == err);
+        let ext_btn = if needs_login { self.tr("ext.title") } else { String::new() };
+        let pv = Pv { state: 2, title: ss(title), err: ss(err), url: ss(url), ext_btn: ss(&ext_btn), ..self.pv_base() };
         self.ui().global::<S>().set_pv(pv);
     }
 

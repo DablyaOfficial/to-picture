@@ -222,7 +222,7 @@
  "links.placeholder": "粘贴链接 —— YouTube、Bilibili、抖音国际版、Twitch、Dailymotion…",
  "pv.audioOnly": "仅音频",
  "py.audioOnly": "这里没有视频 —— 保存音频",
- "py.err.bot": "YouTube 把请求当成了机器人（使用 VPN 时常见）。请在已登录 YouTube 的浏览器中用扩展发送链接，或在设置中开启“登录网站”。",
+ "py.err.bot": "YouTube 把请求当成了机器人（使用 VPN 时常见）。请安装浏览器扩展，并在已登录 YouTube 的浏览器中发送链接。应用会记住登录。",
  "py.err.login": "该网站登录后才显示视频。请用浏览器扩展发送链接,或在设置中开启“登录网站”。",
  "py.err.noVideo": "这条内容里没有视频。",
  "py.err.noFormat": "网站没有为该视频提供可下载的格式。",

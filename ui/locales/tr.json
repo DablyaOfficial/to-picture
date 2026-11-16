@@ -222,7 +222,7 @@
  "links.placeholder": "Bağlantı yapıştırın — YouTube, TikTok, Twitch, Dailymotion, Instagram…",
  "pv.audioOnly": "yalnızca ses",
  "py.audioOnly": "Burada video yok — ses kaydediliyor",
- "py.err.bot": "YouTube isteği bot sandı — bu VPN ile sık olur. Bağlantıyı YouTube’da oturum açtığınız tarayıcıdan uzantıyla gönderin veya “Sitelerde oturum”u açın.",
+ "py.err.bot": "YouTube isteği bot sandı — bu VPN ile sık olur. Tarayıcı uzantısını kurun ve bağlantıyı YouTube’da oturum açtığınız tarayıcıdan gönderin. Uygulama oturumu hatırlar.",
  "py.err.login": "Bu site videoyu yalnızca oturum açınca gösteriyor. Bağlantıyı tarayıcı uzantısıyla gönderin veya “Sitelerde oturum”u açın.",
  "py.err.noVideo": "Bu gönderide video yok.",
  "py.err.noFormat": "Site bu video için indirilebilir bir biçim sunmadı.",

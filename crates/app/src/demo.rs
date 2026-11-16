@@ -165,6 +165,10 @@ impl Backend for Demo {
     }
     fn preview(&self, url: &str) -> PreviewResult {
         sleep(Duration::from_millis(if std::env::var("TOPICTURE_DEMO_SLOWPV").is_ok() { 60_000 } else { 700 }));
+        if url.contains("bot-check") {
+            let lang = i18n::resolve_lang(&self.settings.lock().unwrap().lang);
+            return PreviewResult::Error { error: i18n::tr(&lang, "py.err.bot", &[]), raw: "ERROR: Sign in to confirm you're not a bot".into() };
+        }
         if url.contains("private") || url.contains("fail-preview") {
             let lang = i18n::resolve_lang(&self.settings.lock().unwrap().lang);
             return PreviewResult::Error { error: i18n::tr(&lang, "py.err.private", &[]), raw: "ERROR: Private video".into() };
