@@ -31,6 +31,11 @@ fn main() {
     }
 
     win::set_app_id();
+    // Skia на процессоре: окно 820×760 рисуется быстро, а памяти в простое ~15 МБ против ~240 МБ
+    // у отрисовки через видеокарту (драйверы D3D/Vulkan резервируют много). SLINT_BACKEND может переопределить.
+    if std::env::var_os("SLINT_BACKEND").is_none() {
+        let _ = slint::BackendSelector::new().backend_name("winit".into()).renderer_name("skia-software".into()).select();
+    }
     let demo = std::env::var("TOPICTURE_DEMO").is_ok_and(|v| v == "1");
     let sink: topicture_core::EventSink = Arc::new(|ev| app::post(move |a| a.on_event(ev)));
     let be: Arc<dyn backend::Backend> = if demo { Arc::new(demo::Demo::new(sink)) } else { Arc::new(backend::Real::new(sink)) };
